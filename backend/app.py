@@ -111,9 +111,3 @@ def read_root():
     if os.path.exists(index_path):
         return FileResponse(index_path)
     return {"status": "ONLINE", "msg": f"FastAPI kører, men kunne ikke finde index.html i: {FRONTEND_DIR}"}
-
-# MONTERING AF FRONTEND-FILER: Sørger for at browseren kan finde style.css, global.js osv.
-if os.path.exists(FRONTEND_DIR):
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR), name="frontend")
-else:
-    print(f"ADVARSEL: Frontend-mappen blev ikke fundet på stien: {FRONTEND_DIR}")
