@@ -231,17 +231,15 @@ async function fetchWhoScoredEventFeed() {
     if (!urlInput || !urlInput.value.trim()) return;
 
     spinner.style.display = "inline-block";
-    const targetUrl = urlInput.value.trim();
-
     try {
-        // Vi kalder din egen Render-backend direkte og sender URL'en med som et Query-parameter
-        const res = await fetch(`${API_BASE_URL}/api/fetch-events?url=${encodeURIComponent(targetUrl)}`);
-
+        // Vi rammer din nye, stærke Google Cloud-backend direkte med det rene link!
+        const res = await fetch(`${API_BASE_URL}/api/fetch-events?url=${encodeURIComponent(urlInput.value.trim())}`);
+        
         if (res.ok) {
             EV_GLOBAL_DATA = await res.json();
             EV_SELECTED_TEAM = EV_GLOBAL_DATA.match_info.homeId;
             
-            const firstPId = Object.keys(EV_GLOBAL_DATA.players_map);
+            const firstPId = Object.keys(EV_GLOBAL_DATA.players_map)[0];
             EV_SELECTED_PLAYER = firstPId || "";
 
             getEvEl("ev-tabs-bar").style.display = "flex";
@@ -253,11 +251,12 @@ async function fetchWhoScoredEventFeed() {
         }
     } catch (e) { 
         console.error(e); 
-        alert("Fejl: Kunne ikke oprette forbindelse til din Render-backend."); 
+        alert("Fejl under indlæsning af WhoScored hændelser via din Google Cloud-backend."); 
     } finally { 
         spinner.style.display = "none"; 
     }
 }
+
 
 
 
