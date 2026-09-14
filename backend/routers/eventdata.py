@@ -1,10 +1,7 @@
 # ==========================================================================
-# PER 90 - EVENTDATA.PY (OPDATERET API ROUTER MED SELENIUM BROWSWER-MOTOR)
+# PER 90 - EVENTDATA.PY (ULTRA-SIKKER SCRAPERAPI MOTOR PÅ GOOGLE CLOUD)
 # ==========================================================================
 from fastapi import APIRouter, HTTPException, Query
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium_stealth import stealth
 import requests
 import json
 import re
@@ -14,7 +11,6 @@ from typing import List, Dict, Any
 
 router = APIRouter(prefix="/api", tags=["eventdata"])
 
-# 🎯 OFFICIEL 8x12 OPTA xT WEIGHT MATRIX FRA DIN STREAMLIT-LOGIK
 XT_MATRIX = [
     [0.00638303,0.00779616,0.00844854,0.00977659,0.01126267,0.01248344,0.01473596,0.0174506,0.02122129,0.02756312,0.03485072,0.0379259],
     [0.00750072,0.00878589,0.00942382,0.0105949,0.01214719,0.0138454,0.01611813,0.01870347,0.02401521,0.02953272,0.04066992,0.04647721],
@@ -31,7 +27,6 @@ def lookup_xt(x: float, y: float) -> float:
     col_idx = int((x / 100) * 12) if x < 100 else 11
     return XT_MATRIX[max(0, min(7, row_idx))][max(0, min(11, col_idx))]
 
-# 🎯 DYNAMISK BACKEND FETCH OG BASE64-CACHING AF HOLDLOGOER
 def get_team_logo_base64(team_id: int) -> str:
     url = f"https://cloudfront.net{team_id}.png"
     try:
@@ -44,44 +39,32 @@ def get_team_logo_base64(team_id: int) -> str:
         pass
     return url
 
-# 🚀 SKUDSIKKER GOOGLE CLOUD LINUX-OPSÆTNING AF CHROME
 @router.get("/fetch-events")
 def get_whoscored_event_data(url: str = Query(...)):
     if not url.strip() or "whoscored.com" not in url:
         raise HTTPException(status_code=400, detail="Ugyldig URL. Indtast venligst en gyldig WhoScored URL.")
 
-    # Korrekt Linux-konfiguration udenom 503 Service Unavailable fejl i skyen
-    options = Options()
-    options.add_argument("--headless=new")  # Tvinger den stabile, nye headless motor
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
-
-    driver = webdriver.Chrome(options=options)
-
-    # Gør browser-fingeraftrykket fuldstændig usynligt for Cloudflare muren
-    stealth(driver,
-            languages=["en-US", "en"],
-            vendor="Google Inc.",
-            platform="Win32",
-            webgl_vendor="Intel Inc.",
-            renderer="Intel Iris OpenGL Engine")
-
     try:
-        # Hent kildekoden via den skjulte browser
-        driver.get(url)
-        html_text = driver.page_source
-        driver.quit()  # Luk browseren ned med det samme så vi sparer RAM
+        # 🔑 Din personlige ScraperAPI-nøgle, som snyder WhoScoreds Cloudflare-mur lynhurtigt
+        API_KEY = "17cda6871c9f06a403e1cf058d2a591e"
+        
+        # 🌐 Vi tvinger ScraperAPI til at køre fuld JavaScript-rendering (&render=true) på deres private IP-netværk
+        proxy_url = f"http://scraperapi.com?api_key={API_KEY}&url={url}&render=true"
+        
+        # ⏱️ Da ScraperAPI skal åbne siden og lade JavaScript indlæse udefra, sætter vi timeout højt (40 sekunder)
+        response = requests.get(proxy_url, timeout=40)
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail=f"ScraperAPI fejlede med status: {response.status_code}")
 
-        # Din originale og ufejlbarlige Regex-logik scanner teksten fejlfrit:
+        html_text = response.text
+
+        # Din originale og ufejlbarlige Regex-logik og databehandling fortsætter herfra (100% uændret):
         match_data_match = re.search(r'matchCentreData\s*:\s*({.+?})\s*,\s*\n', html_text)
         if not match_data_match:
             match_data_match = re.search(r'var\s+matchCentreData\s*=\s*({.+?});', html_text)
         if not match_data_match:
-            raise HTTPException(status_code=404, detail="Kunne ikke lokalisere kampdata (matchCentreData) i browserens kildekode.")
+            raise HTTPException(status_code=404, detail="Kunne ikke lokalisere kampdata (matchCentreData) i den hentede HTML.")
 
         match_centre_data = json.loads(match_data_match.group(1))
 
@@ -101,8 +84,8 @@ def get_whoscored_event_data(url: str = Query(...)):
             "awayName": away.get("name"),
             "homeColor": "#00F0FF",
             "awayColor": "#FF0055",
-            "homeLogo": home_logo_data,
-            "awayLogo": away_logo_data,
+            "homeLogo": home_logo_data,   
+            "awayLogo": away_logo_data,   
             "scoreStr": f"{home.get('scores', {}).get('fullTime', 0)} - {away.get('scores', {}).get('fullTime', 0)}"
         }
 
@@ -177,5 +160,4 @@ def get_whoscored_event_data(url: str = Query(...)):
             "events": processed_events
         }
     except Exception as e:
-        if 'driver' in locals(): driver.quit()
         raise HTTPException(status_code=500, detail=f"Fejl under indlæsning: {str(e)}")
