@@ -49,13 +49,31 @@ def get_team_logo_base64(team_id: int) -> str:
     return url
 
 # ERSTATTET GET MED POST FOR AT KUNNE MODTAGE DEN STORE MÆNGDE HTML-DATA
-@router.post("/process-events")
-def get_whoscored_event_data(payload: MatchHtmlPayload):
-    try:
-        # Vi trækker kildekoden direkte ud fra den indsendte frontend-pakke
-        html_text = payload.html
+# SLET MatchHtmlPayload klassen, den skal ikke bruges mere!
 
-        # Din helt originale Regex kigger nu fejlfrit i den leverede tekststreng udenom sky-blokeringer
+@router.get("/fetch-events")  # Ændret tilbage til GET
+def get_whoscored_event_data(url: str = Query(...)):
+    if not url.strip() or "whoscored.com" not in url:
+        raise HTTPException(status_code=400, detail="Ugyldig URL. Indtast en gyldig WhoScored URL.")
+
+    try:
+        # Vi camouflerer din Render-server, så den ligner en fuldstændig ægte Google Chrome-browser
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Referer": "https://google.com"
+        }
+        
+        # Din Render-server henter nu selv siden udenom din computers browser
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code != 200:
+            raise HTTPException(status_code=response.status_code, detail=f"WhoScored afviste anmodningen med status {response.status_code}")
+
+        # Vi trækker teksten ud (præcis som i din oprindelige logik)
+        html_text = response.text
+
+        # Din helt originale og ufejlbarlige Regex-logik fortsætter herfra (uændret):
         match_data_match = re.search(r'matchCentreData\s*:\s*({.+?})\s*,\s*\n', html_text)
         if not match_data_match:
             match_data_match = re.search(r'var\s+matchCentreData\s*=\s*({.+?});', html_text)
@@ -63,7 +81,7 @@ def get_whoscored_event_data(payload: MatchHtmlPayload):
             raise HTTPException(status_code=404, detail="Kunne ikke lokalisere kampdata (matchCentreData).")
 
         match_centre_data = json.loads(match_data_match.group(1))
-
+    
 
         # Metadata extraction
         home = match_centre_data.get("home", {})
