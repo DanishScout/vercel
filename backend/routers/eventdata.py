@@ -2,6 +2,7 @@
 # PER 90 - EVENTDATA.PY (OPDATERET API ROUTER MED BACKEND LOGO-CACHING)
 # ==========================================================================
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel  # Genial til at modtage lange HTML-tekststrenge
 import requests
 import json
 import re
@@ -10,6 +11,10 @@ from io import BytesIO
 from typing import List, Dict, Any
 
 router = APIRouter(prefix="/api", tags=["eventdata"])
+
+# Opretter datamodellen til at modtage HTML fra din Vercel-frontend
+class MatchHtmlPayload(BaseModel):
+    html: str
 
 # 🎯 OFFICIEL 8x12 OPTA xT WEIGHT MATRIX FRA DIN STREAMLIT-LOGIK
 XT_MATRIX = [
@@ -43,24 +48,22 @@ def get_team_logo_base64(team_id: int) -> str:
     # Fallback til det rå link, hvis Cloudfront skulle fejle under anmodningen
     return url
 
-@router.get("/fetch-events")
-def get_whoscored_event_data(url: str = Query(...)):
-    if not url.strip() or "whoscored.com" not in url:
-        raise HTTPException(status_code=400, detail="Ugyldig URL. Indtast venligst en gyldig WhoScored URL.")
-
+# ERSTATTET GET MED POST FOR AT KUNNE MODTAGE DEN STORE MÆNGDE HTML-DATA
+@router.post("/process-events")
+def get_whoscored_event_data(payload: MatchHtmlPayload):
     try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
-        response = requests.get(url, headers=headers, timeout=10)
-        if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail="WhoScored blokerede anmodningen.")
+        # Vi trækker kildekoden direkte ud fra den indsendte frontend-pakke
+        html_text = payload.html
 
-        match_data_match = re.search(r'matchCentreData\s*:\s*({.+?})\s*,\s*\n', response.text)
+        # Din helt originale Regex kigger nu fejlfrit i den leverede tekststreng udenom sky-blokeringer
+        match_data_match = re.search(r'matchCentreData\s*:\s*({.+?})\s*,\s*\n', html_text)
         if not match_data_match:
-            match_data_match = re.search(r'var\s+matchCentreData\s*=\s*({.+?});', response.text)
+            match_data_match = re.search(r'var\s+matchCentreData\s*=\s*({.+?});', html_text)
         if not match_data_match:
             raise HTTPException(status_code=404, detail="Kunne ikke lokalisere kampdata (matchCentreData).")
 
         match_centre_data = json.loads(match_data_match.group(1))
+
 
         # Metadata extraction
         home = match_centre_data.get("home", {})
