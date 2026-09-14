@@ -44,19 +44,21 @@ def get_team_logo_base64(team_id: int) -> str:
         pass
     return url
 
-# 🚀 OPDATERET ENDEPUNKT MED FULL HEADLESS CHROME + STEALTH-MASKERING
+# 🚀 SKUDSIKKER GOOGLE CLOUD LINUX-OPSÆTNING AF CHROME
 @router.get("/fetch-events")
 def get_whoscored_event_data(url: str = Query(...)):
     if not url.strip() or "whoscored.com" not in url:
         raise HTTPException(status_code=400, detail="Ugyldig URL. Indtast venligst en gyldig WhoScored URL.")
 
-    # Opsætning af den skjulte browser-motor (præcis som i din Streamlit fig.py)
+    # Korrekt Linux-konfiguration udenom 503 Service Unavailable fejl i skyen
     options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--headless=new")  # Tvinger den stabile, nye headless motor
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
 
     driver = webdriver.Chrome(options=options)
 
