@@ -1,28 +1,30 @@
-# 1. Brug en officiel, let Python-byggesten
+# 1. Brug en officiel, let Python-byggeklods
 FROM python:3.10-slim
 
-# 2. Installer de nødvendige Linux-pakker for at Google Chrome kan køre
+# 2. Installer de nødvendige Linux-værktøjer
 RUN apt-get update && apt-get install -y \
     wget \
+    curl \
     gnupg \
     ca-certificates \
     apt-transport-https \
     && rm -rf /var/lib/apt/lists/*
 
-# 3. Hent og installer den officielle Google Chrome browser stable version
-RUN wget -q -O - https://google.com | apt-key add - \
-    && sh -c 'echo "deb [arch=amd64] http://google.com stable main" >> /etc/apt/sources.list.d/google-chrome.list' \
+# 3. Hent den officielle Google Chrome browser via den nye, sikre nøgle-metode
+RUN mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://google.com | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://google.com stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
 # 4. Sæt arbejdsmappen inde i containeren
 WORKDIR /app
 
-# 5. Kopier dine requirements og installer alle Python-pakker (inkl. selenium og selenium-stealth)
+# 5. Kopier requirements og installer alle Python-pakker
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 6. Kopier resten af dine backend-filer (app.py, routers, data-filer osv.) ind i containeren
+# 6. Kopier resten af dine backend-filer ind i containeren
 COPY . .
 
 # 7. Start din FastAPI applikation på den port, Google Cloud Run tildeler den
