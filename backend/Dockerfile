@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
 
 # 3. Hent den officielle Google Chrome browser via den nye, sikre nøgle-metode
 RUN mkdir -p /etc/apt/keyrings \
-    && curl -fsSL https://google.com | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg \
-    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://google.com stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && curl -fsSL https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg \
+    && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update && apt-get install -y google-chrome-stable \
     && rm -rf /var/lib/apt/lists/*
 
