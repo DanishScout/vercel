@@ -1,8 +1,10 @@
 # ==========================================================================
-# PER 90 - EVENTDATA.PY (OPDATERET API ROUTER MED BACKEND LOGO-CACHING)
+# PER 90 - EVENTDATA.PY (OPDATERET API ROUTER MED SELENIUM BROWSWER-MOTOR)
 # ==========================================================================
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel  # Genial til at modtage lange HTML-tekststrenge
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium_stealth import stealth
 import requests
 import json
 import re
@@ -11,10 +13,6 @@ from io import BytesIO
 from typing import List, Dict, Any
 
 router = APIRouter(prefix="/api", tags=["eventdata"])
-
-# Opretter datamodellen til at modtage HTML fra din Vercel-frontend
-class MatchHtmlPayload(BaseModel):
-    html: str
 
 # 🎯 OFFICIEL 8x12 OPTA xT WEIGHT MATRIX FRA DIN STREAMLIT-LOGIK
 XT_MATRIX = [
@@ -35,64 +33,55 @@ def lookup_xt(x: float, y: float) -> float:
 
 # 🎯 DYNAMISK BACKEND FETCH OG BASE64-CACHING AF HOLDLOGOER
 def get_team_logo_base64(team_id: int) -> str:
-    url = f"https://d2zywfiolv4f83.cloudfront.net/img/teams/{team_id}.png"
+    url = f"https://cloudfront.net{team_id}.png"
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
         res = requests.get(url, headers=headers, timeout=5)
         if res.status_code == 200:
-            # Konverterer rå billed-bytes til en sikker data-URI tekststreng
             encoded = base64.b64encode(res.content).decode("utf-8")
             return f"data:image/png;base64,{encoded}"
     except Exception:
         pass
-    # Fallback til det rå link, hvis Cloudfront skulle fejle under anmodningen
     return url
 
-# ERSTATTET GET MED POST FOR AT KUNNE MODTAGE DEN STORE MÆNGDE HTML-DATA
-# SLET MatchHtmlPayload klassen, den skal ikke bruges mere!
-
-@router.get("/fetch-events")  # Vi beholder din GET-funktion
+# 🚀 OPDATERET ENDEPUNKT MED FULL HEADLESS CHROME + STEALTH-MASKERING
+@router.get("/fetch-events")
 def get_whoscored_event_data(url: str = Query(...)):
     if not url.strip() or "whoscored.com" not in url:
         raise HTTPException(status_code=400, detail="Ugyldig URL. Indtast venligst en gyldig WhoScored URL.")
 
+    # Opsætning af den skjulte browser-motor (præcis som i din Streamlit fig.py)
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+
+    driver = webdriver.Chrome(options=options)
+
+    # Gør browser-fingeraftrykket fuldstændig usynligt for Cloudflare muren
+    stealth(driver,
+            languages=["en-US", "en"],
+            vendor="Google Inc.",
+            platform="Win32",
+            webgl_vendor="Intel Inc.",
+            renderer="Intel Iris OpenGL Engine")
+
     try:
-        # 🔑 Din personlige ScraperAPI-nøgle
-        API_KEY = "17cda6871c9f06a403e1cf058d2a591e"
-        
-        # 🌐 Her opretter vi proxy_url'en og aktiverer JavaScript-rendering (&render=true)
-        proxy_url = f"http://scraperapi.com?api_key={API_KEY}&url={url}&render=true"
-        
-        # ⏱️ Vi beder requests om at vente i op til 60 sekunder på, at browseren har indlæst WhoScored færdig
-        response = requests.get(proxy_url, timeout=60)
-        
-        if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail=f"ScraperAPI fejlede med status: {response.status_code}")
+        # Hent kildekoden via den skjulte browser
+        driver.get(url)
+        html_text = driver.page_source
+        driver.quit()  # Luk browseren ned med det samme så vi sparer RAM
 
-        # Vi gemmer den færdige kildekode i html_text variablen
-        html_text = response.text
-
-        # Din helt originale og ufejlbarlige Regex-logik fortsætter uændret herfra:
+        # Din originale og ufejlbarlige Regex-logik scanner teksten fejlfrit:
         match_data_match = re.search(r'matchCentreData\s*:\s*({.+?})\s*,\s*\n', html_text)
         if not match_data_match:
             match_data_match = re.search(r'var\s+matchCentreData\s*=\s*({.+?});', html_text)
         if not match_data_match:
-            raise HTTPException(status_code=404, detail="Kunne ikke lokalisere kampdata (matchCentreData).")
+            raise HTTPException(status_code=404, detail="Kunne ikke lokalisere kampdata (matchCentreData) i browserens kildekode.")
 
         match_centre_data = json.loads(match_data_match.group(1))
-        
-        # =========================================================================
-        # RESTEN AF DIN EVENTDATA.PY KODE (Metadata, Spillere, xT, Loops osv.) 
-        # FORTSÆTTER PRÆCIS SOM FØR – INGEN MERE SKAL RETTES HÉR!
-        # =========================================================================
-
-        
-        # =========================================================================
-        # RESTEN AF DIN EVENTDATA.PY KODE (Metadata, Spillere, xT, Loops osv.) 
-        # FORTSÆTTER PRÆCIS SOM FØR – INGEN MERE SKAL RETTES HÉR!
-        # =========================================================================
-
-    
 
         # Metadata extraction
         home = match_centre_data.get("home", {})
@@ -100,7 +89,6 @@ def get_whoscored_event_data(url: str = Query(...)):
         home_id = home.get("teamId")
         away_id = away.get("teamId")
 
-        # 🎯 HENT OG GEM BEGGE LOGOER SOM BASE64 ÉN GANG FOR ALLE
         home_logo_data = get_team_logo_base64(home_id)
         away_logo_data = get_team_logo_base64(away_id)
 
@@ -111,12 +99,11 @@ def get_whoscored_event_data(url: str = Query(...)):
             "awayName": away.get("name"),
             "homeColor": "#00F0FF",
             "awayColor": "#FF0055",
-            "homeLogo": home_logo_data,   # 🟥 Gemt i cache i JSON
-            "awayLogo": away_logo_data,   # 🟥 Gemt i cache i JSON
+            "homeLogo": home_logo_data,
+            "awayLogo": away_logo_data,
             "scoreStr": f"{home.get('scores', {}).get('fullTime', 0)} - {away.get('scores', {}).get('fullTime', 0)}"
         }
 
-        # Find minutter for første udskiftning pr. hold
         raw_events = match_centre_data.get("events", [])
         sub_home_min = 90
         sub_away_min = 90
@@ -132,7 +119,6 @@ def get_whoscored_event_data(url: str = Query(...)):
         match_info["homeFirstSubMin"] = sub_home_min
         match_info["awayFirstSubMin"] = sub_away_min
 
-        # Spiller mapping
         players_map = {}
         for team in ["home", "away"]:
             for p in match_centre_data.get(team, {}).get("players", []):
@@ -189,4 +175,5 @@ def get_whoscored_event_data(url: str = Query(...)):
             "events": processed_events
         }
     except Exception as e:
+        if 'driver' in locals(): driver.quit()
         raise HTTPException(status_code=500, detail=f"Fejl under indlæsning: {str(e)}")
