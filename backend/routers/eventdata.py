@@ -51,29 +51,28 @@ def get_team_logo_base64(team_id: int) -> str:
 # ERSTATTET GET MED POST FOR AT KUNNE MODTAGE DEN STORE MÆNGDE HTML-DATA
 # SLET MatchHtmlPayload klassen, den skal ikke bruges mere!
 
-@router.get("/fetch-events")  # Ændret tilbage til GET
+@@router.get("/fetch-events")
 def get_whoscored_event_data(url: str = Query(...)):
     if not url.strip() or "whoscored.com" not in url:
         raise HTTPException(status_code=400, detail="Ugyldig URL. Indtast en gyldig WhoScored URL.")
 
     try:
-        # Vi camouflerer din Render-server, så den ligner en fuldstændig ægte Google Chrome-browser
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Referer": "https://google.com"
-        }
+        # 🔑 Din personlige ScraperAPI-nøgle indsat fejlfrit
+        API_KEY = "17cda6871c9f06a403e1cf058d2a591e"
         
-        # Din Render-server henter nu selv siden udenom din computers browser
-        response = requests.get(url, headers=headers, timeout=10)
+        # Vi sender anmodningen igennem ScraperAPI, som automatisk roterer IP'er og snyder Cloudflare
+        proxy_url = f"http://scraperapi.com?api_key={API_KEY}&url={url}"
+        
+        # Din Render-server kalder nu proxyen i stedet for WhoScored direkte (timeout sat op til 20s, da proxyer kan tage et øjeblik)
+        response = requests.get(proxy_url, timeout=20)
+        
         if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail=f"WhoScored afviste anmodningen med status {response.status_code}")
+            raise HTTPException(status_code=response.status_code, detail="ScraperAPI kunne ikke hente WhoScored siden.")
 
-        # Vi trækker teksten ud (præcis som i din oprindelige logik)
+        # Vi trækker teksten ud af svaret
         html_text = response.text
 
-        # Din helt originale og ufejlbarlige Regex-logik fortsætter herfra (uændret):
+        # Din originale og ufejlbarlige Regex-logik og databehandling fortsætter herfra fuldstændig uændret:
         match_data_match = re.search(r'matchCentreData\s*:\s*({.+?})\s*,\s*\n', html_text)
         if not match_data_match:
             match_data_match = re.search(r'var\s+matchCentreData\s*=\s*({.+?});', html_text)
@@ -81,6 +80,12 @@ def get_whoscored_event_data(url: str = Query(...)):
             raise HTTPException(status_code=404, detail="Kunne ikke lokalisere kampdata (matchCentreData).")
 
         match_centre_data = json.loads(match_data_match.group(1))
+        
+        # =========================================================================
+        # RESTEN AF DIN EVENTDATA.PY KODE (Metadata, Spillere, xT, Loops osv.) 
+        # FORTSÆTTER PRÆCIS SOM FØR – INGEN MERE SKAL RETTES HÉR!
+        # =========================================================================
+
     
 
         # Metadata extraction
