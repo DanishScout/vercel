@@ -1,0 +1,223 @@
+/* ==========================================================================
+   PER 90 - CORE STYLES (MAKSIMALT KOMPRIMERET) - DEL 1 AF 4
+   ========================================================================== */
+:root {
+    --bg-dark: #06140c; --bg-card: rgba(14, 28, 20, 0.7); --bg-sidebar: #0b1f13;
+    --text-primary: #f3f1f6; --text-muted: #8da394; --accent-purple: #ccff00;
+    --accent-purple-dim: rgba(204, 255, 0, 0.15); --border-color: #1e3a27;
+    --font-family: "Gabarito", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-family) !important; }
+
+/* SIKRER IKONER MOD FONT-TVANG */
+.fa, .fas, .far, .fab, [class^="fa-"], [class*=" fa-"], .nav-item i {
+    font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", sans-serif !important;
+    font-weight: 900 !important; display: inline-block !important; width: 16px;
+}
+body { background-color: var(--bg-dark); color: var(--text-primary); font-family: var(--font-family); overflow: hidden; height: 100vh; }
+.app-container { display: flex; height: 100vh; width: 100vw; }
+
+/* PC SIDEBAR */
+.sidebar { width: 200px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 24px 8px 24px 16px; z-index: 10; height: 100vh; }
+.nav-menu { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 8px; }
+.nav-menu::-webkit-scrollbar { width: 4px; } .nav-menu::-webkit-scrollbar-track { background: transparent; } .nav-menu::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+.logo { font-size: 15px; font-weight: 900; letter-spacing: 7px; margin: 0 auto 40px auto; text-transform: uppercase; display: flex; justify-content: center; align-items: center; width: fit-content; text-indent: 7px; background: none; border: none; padding: 0; box-shadow: none; }
+.logo-main { color: #ffffff !important; } .logo-sub { color: #ffffff !important; margin-left: 4px; }
+.nav-section { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin: 16px 0 8px 12px; }
+.nav-item { background: none; border: none; color: var(--text-muted); display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+.nav-item:hover { color: var(--text-primary); background-color: rgba(255, 255, 255, 0.03); }
+.nav-item.active { color: var(--text-primary); background-color: var(--accent-purple-dim); border-left: 3px solid var(--accent-purple); }
+.sidebar-footer { color: var(--text-muted); font-size: 12px; display: flex; align-items: center; gap: 8px; }
+/* ==========================================================================
+   PER 90 - CORE STYLES (STADIONGRÆS & PC-CONTAINERE) - DEL 2 AF 4
+   ========================================================================== */
+.main-content {
+    flex-grow: 1; padding: 60px; overflow-x: hidden; overflow-y: auto; position: relative;
+    background-image: 
+        radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 70%),
+        linear-gradient(rgba(6, 20, 12, 0.1), rgba(6, 20, 12, 0.1)),
+        radial-gradient(circle at 85% 25%, rgba(204, 255, 0, 0.08) 0%, transparent 50%),
+        linear-gradient(90deg, transparent 15px, rgba(255, 255, 255, 0.35) 15px, rgba(255, 255, 255, 0.35) 18px, transparent 18px),
+        linear-gradient(270deg, transparent 15px, rgba(255, 255, 255, 0.35) 15px, rgba(255, 255, 255, 0.35) 18px, transparent 18px),
+        linear-gradient(to bottom, #4b8b4b 0%, #4b8b4b 50%, #2d6136 50%, #2d6136 100%);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 80px; background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat-y;
+}
+.pitch-watermark { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.pitch-watermark::before, .pitch-watermark::after { content: none !important; display: none !important; }
+.content-view { display: none; position: relative; z-index: 1; animation: fadeIn 0.4s ease; }
+.content-view.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* HERO & STATS */
+.hero-container { max-width: 650px; margin-top: 40px; margin-bottom: 60px; background-color: var(--bg-card); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 12px; padding: 32px; box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4); }
+.dashboard-tag { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-purple); font-size: 11px; font-weight: 700; letter-spacing: 1px; margin-bottom: 16px; }
+.hero-title { font-size: 44px; font-weight: 900; line-height: 1.15; letter-spacing: -0.5px; margin-bottom: 20px; }
+.hero-title .highlight { color: var(--accent-purple); text-shadow: 0 0 20px rgba(168, 85, 247, 0.2); }
+.hero-subtitle { font-size: 16px; color: var(--text-muted); line-height: 1.6; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; padding-top: 24px; }
+.stat-card { background-color: var(--bg-card); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--border-color); border-radius: 8px; padding: 24px; transition: border-color 0.2s, transform 0.2s; }
+.stat-card:hover { border-color: rgba(168, 85, 247, 0.4); transform: translateY(-2px); }
+.stats-grid .stat-value { font-size: 36px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px; letter-spacing: -0.5px; }
+.stats-grid .stat-label { font-size: 12px; color: var(--text-primary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.stats-grid .stat-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+
+/* CHARTS GENERAL */
+.view-header { margin-bottom: 32px; }
+.view-header h2 { font-size: 28px; font-weight: 800; margin-bottom: 4px; text-transform: uppercase; }
+.view-header p { color: var(--text-muted); }
+.chart-container-wrapper { background-color: var(--bg-card); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(0,240,255,.08); border-radius: 24px; padding: 15px 15px 35px; min-height: 520px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 30px 60px -15px #000, inset 0 1px 0 rgba(255,255,255,.05); width: 100%; max-width: 710px; margin: 20px auto !important; opacity: 0.85; overflow: hidden; position: relative; }
+.chart-box { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+.chart-image-render { max-width: 100%; max-height: 550px; object-fit: contain; }
+/* ==========================================================================
+   PER 90 - UNIVERSEL SKUFFE-ARKITEKTUR (PC & MOBIL DET SAMME) - DEL 3 AF 4
+   ========================================================================== */
+.open-drawer-btn {
+    display: flex !important; align-items: center; justify-content: center; gap: 10px;
+    width: 280px; height: 48px; background-color: var(--bg-sidebar); border: 1px solid var(--accent-purple);
+    color: var(--text-primary); font-size: 14px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: all 0.2s;
+}
+.open-drawer-btn:hover { background-color: var(--accent-purple-dim); transform: translateY(-1px); }
+
+/* SLØRINGS-OVERLAY */
+.filter-drawer-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9999; display: none; }
+.filter-drawer-overlay.active { display: block; }
+
+/* BUND-SKUFFE */
+.filter-drawer {
+    position: fixed; bottom: 0; left: 50%; width: 100vw; max-width: 500px; max-height: 80vh;
+    background-color: #0b1f13; border-top: 2px solid var(--accent-purple); border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color);
+    border-radius: 20px 20px 0 0; z-index: 10000; padding: 24px 20px; display: flex; flex-direction: column; gap: 20px;
+    transform: translate(-50%, 100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); overflow-y: auto !important;
+}
+.filter-drawer.active { transform: translate(-50%, 0); }
+.drawer-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+.drawer-title { font-size: 16px; font-weight: 800; text-transform: uppercase; color: var(--accent-purple); }
+.close-drawer-btn { background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; }
+
+/* LODRET PANEL DESIGN INDENI SKUFFEN */
+.filter-panel { display: flex; flex-direction: column !important; gap: 20px !important; width: 100% !important; }
+.filter-group, .multiselect { width: 100% !important; max-width: none !important; position: relative !important; display: flex !important; flex-direction: column !important; gap: 6px; }
+.multiselect { padding-right: 0px !important; }
+.custom-select-trigger, .selectBox { padding: 14px 12px !important; font-size: 13px !important; background-color: var(--bg-dark) !important; border: 1px solid var(--border-color) !important; border-radius: 6px; cursor: pointer; }
+
+/* OPTION-LISTER */
+.custom-options-list, #checkboxes-container { 
+    position: absolute !important; top: 100% !important; left: 0 !important; width: 100% !important; max-height: 200px !important; 
+    z-index: 10001 !important; background: #06140c !important; border: 1px solid var(--accent-purple) !important; 
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8) !important; border-radius: 6px !important; overflow-y: auto !important;
+}
+
+/* ==========================================================================
+   PER 90 - DYNAMISK IKON-HEADER SKABELON
+   ========================================================================== */
+/* ==========================================================================
+   PER 90 - DYNAMISK IKON-HEADER SKABELON (MINIMALISTISK HVID/OPACITY)
+   ========================================================================== */
+.chart-header-container {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 auto 20px auto !important; /* Centrerer ikonet og giver luft til knappen */
+    text-align: center !important;
+    width: fit-content !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+/* Styrer det store, afdæmpede hvide ikon */
+.chart-header-container i {
+    font-size: 65px !important;         /* Stor, ren størrelse */
+    color: #ffffff !important;         /* 🎯 Skiftet fra neongrøn til helt ren hvid */
+    opacity: 0.8 !important;           /* 🎯 Lidt lavere opacity så det blender lækkert ind */
+    filter: none !important;           /* 🎯 Fuldstændig fjernet neonglow / skyggeeffekt */
+    width: auto !important;            /* Modvirker pc-sidebar-bredde-reglen */
+}
+
+/* Den helt korte, diskrete tekst under ikonet */
+.chart-header-container span {
+    font-size: 12px !important;
+    color: #ffffff !important;         /* Hvid skrift her også */
+    opacity: 0.45 !important;           /* Endnu lavere opacity på underteksten */
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+}
+
+
+/* Tvinger download-teksten til at være sort på den neongrønne knap */
+.download button {
+    color: #06140c !important; /* Din mørke retro-baggrundsfarve */
+}
+
+/* ==========================================================================
+   PER 90 - CORE STYLES (RESPONSIV MOBILOPTIMERING) - DEL 4 AF 4
+   ========================================================================== */
+/* ==========================================================================
+   PER 90 - RESPONSIV MOBILOPTIMERING (RETTET: INGEN HOVER-CRASH & FRI SCROLL)
+   ========================================================================== */
+@media screen and (max-width: 900px) {
+    body { overflow-y: scroll !important; height: auto; } /* 🎯 FIX: Sikrer universel scroll på mobil */
+    .app-container { flex-direction: column; height: auto; width: 100vw; }
+
+    /* Sticky topbar på mobilen */
+    .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-color); padding: 14px 16px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; position: sticky; top: 0; background-color: var(--bg-sidebar); z-index: 1000; overflow: visible; }
+    .sidebar::after { content: none; }
+    .logo { margin-bottom: 0; font-size: 18px; flex-shrink: 0; }
+    .nav-section, .sidebar-footer { display: none !important; }
+
+    /* 🎯 DYNAMISK FLEXBOX MOBIL dropdown (Slut med hårde top: px-fejl!) */
+    .nav-menu { display: flex; flex-direction: column; gap: 0; flex-grow: 0; position: relative; background: #07030c; border: 1px solid var(--accent-purple); border-radius: 6px; width: 150px; height: 36px; overflow: visible; cursor: pointer; }
+    .nav-menu::before { content: "MENU ▾"; display: flex; align-items: center; justify-content: center; height: 34px; width: 100%; font-size: 11px; font-weight: 800; color: var(--text-primary); letter-spacing: 1px; text-transform: uppercase; }
+    
+    .nav-menu .nav-item { display: none !important; }
+    
+    .nav-menu:hover, .nav-menu:active, .nav-menu:focus-within { background: #07030c; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.9); border-radius: 6px 6px 0 0; }
+    .nav-menu:hover::before, .nav-menu:active::before { content: "MENU ▴"; color: var(--accent-purple); }
+    
+    /* 🎯 LØSNING: Vi bruger flex-retning og statisk position, så knapperne altid følger HTML'en under hinanden! */
+    .nav-menu:hover .nav-item, .nav-menu:active .nav-item { 
+        display: flex !important; 
+        position: static !important; /* Fjernet position: absolute */
+        width: 100%; 
+        background: #07030c !important; 
+        border-left: 1px solid var(--accent-purple); 
+        border-right: 1px solid var(--accent-purple); 
+        z-index: 2000; 
+    }
+    
+    /* Giver en flot adskillelseslinje mellem menupunkterne automatisk */
+    .nav-menu:hover .nav-item:not(:last-child), .nav-menu:active .nav-item:not(:last-child) {
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+    .nav-menu:hover .nav-item:last-child, .nav-menu:active .nav-item:last-child { 
+        border-bottom: 1px solid var(--accent-purple); 
+        border-radius: 0 0 6px 6px; 
+    }
+
+    .nav-item { padding: 12px 14px; height: 42px; font-size: 11px; font-weight: 700; text-transform: uppercase; align-items: center; gap: 8px; color: var(--text-muted); border: none; width: 100%; }
+    .nav-item span { display: inline !important; }
+    .nav-item:hover, .nav-item:active { background-color: rgba(168, 85, 247, 0.2) !important; color: var(--text-primary); }
+    .nav-item.active { border-left: 4px solid var(--accent-purple) !important; background-color: var(--accent-purple-dim) !important; color: var(--text-primary); }
+
+    .main-content { padding: 24px 16px !important; width: 100%; overflow-x: hidden; }
+    .hero-container, .chart-container-wrapper, .header-card, .stats-grid, .view-header { margin-left: 0 !important; margin-right: 0 !important; }
+    .hero-title { font-size: 28px; } .view-header h2 { font-size: 22px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 24px; }
+    .stat-card { padding: 16px; } .stats-grid .stat-value { font-size: 24px; }
+
+    .open-drawer-btn { width: 100% !important; }
+    .filter-drawer { left: 0 !important; width: 100vw !important; max-width: none !important; transform: translateY(100%); }
+    .filter-drawer.active { transform: translateY(0); }
+    .chart-container-wrapper, #chart-only { padding: 16px 12px !important; min-height: auto !important; width: 100% !important; }
+    #pizza-svg-element { width: 100% !important; height: auto !important; max-height: 400px; margin-top: 0 !important; }
+    .p-nm { font-size: 30px !important; padding-bottom: 6px !important; margin-bottom: 2px !important; }
+    .p-sub-bar { gap: 4px !important; font-size: 8px !important; margin-top: 0px !important; padding-top: 0px !important; }
+    .header-card { padding: 12px 16px !important; margin-bottom: 12px !important; }
+}
+
+
+@media screen and (max-width: 400px) { .stats-grid { grid-template-columns: 1fr; } }

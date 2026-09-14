@@ -1,0 +1,17 @@
+Role,Metric1,Metric2,Metric3,Metric4,Metric5,Metric6,Weight1,Weight2,Weight3,Weight4,Weight5,Weight6
+Quarterback,xT_pass_p90,progressive_passes_p90,total accurate long balls_p90,passes_into_final_third_p90,pass_success_pct_p90,long_balls_success_pct_p90,0.2,0.2,0.2,0.2,0.1,0.1
+All-rounder,xT_pass_p90,progressive_passes_p90,Total Carries_p90,tackle_success_pct_p90,aerial_success_pct_p90,total interception_p90,0.1,0.2,0.3,0.1,0.1,0.2
+No-nonsense CB,tackle_success_pct_p90,aerial_success_pct_p90,total won tackle_p90,total aerial won_p90,total effective clearance_p90,total interception_p90,0.15,0.15,0.2,0.2,0.1,0.2
+Lockdown Defender,tackle_success_pct_p90,aerial_success_pct_p90,total won tackle_p90,total aerial won_p90,total effective clearance_p90,total interception_p90,0.15,0.15,0.2,0.2,0.1,0.2
+Chance Creator,xA_p90,total att assist_p90,xT_pass_p90,progressive_passes_p90,total accurate cross_p90,Total Carries_p90,0.25,0.15,0.15,0.1,0.15,0.2
+Circulator,passes_into_final_third_p90,forward_passes_p90,total accurate pass_p90,pass_success_pct_p90,progressive_passes_p90,xT_pass_p90,0.15,0.2,0.3,0.1,0.125,0.125
+Box-crasher,total goals_p90,xG_p90,total attempts ibox_p90,total touches in opposition box_p90,attempt_success_pct_p90,total aerial won_p90,0.3,0.3,0.1,0.15,0.075,0.075
+Goalscoring threat,total goals_p90,xG_p90,total attempt_p90,total touches in opposition box_p90,attempt_success_pct_p90,CreatedOwnShot_p90,0.35,0.35,0.1,0.05,0.075,0.075
+Anchor,total aerial won_p90,total won tackle_p90,total duels won_p90,duel_success_pct_p90,total effective clearance_p90,total interception_p90,0.2,0.2,0.2,0.05,0.15,0.2
+Direct Winger,total won contest_p90,dribble_success_pct_p90,Total Carries_p90,total att assist_p90,total attempt_p90,total was fouled_p90,0.25,0.1,0.2,0.15,0.15,0.15
+Inside Forward,total goals_p90,xG_p90,total ontarget attempt_p90,CreatedOwnShot_p90,total won contest_p90,dribble_success_pct_p90,0.2,0.4,0.1,0.1,0.15,0.05
+Poacher,total goals_p90,xG_p90,total attempts ibox_p90,total touches in opposition box_p90,attempt_success_pct_p90,total attempt_p90,0.3,0.35,0.1,0.15,0.05,0.05
+Target Man,total goals_p90,xG_p90,total aerial won_p90,aerial_success_pct_p90,total touches in opposition box_p90,total attempts ibox_p90,0.15,0.2,0.3,0.2,0.075,0.075
+False 9,xA_p90,total att assist_p90,xT_pass_p90,progressive_passes_p90,passes_into_final_third_p90,total won contest_p90,0.35,0.1,0.25,0.1,0.1,0.1
+Playmaker,xA_p90,total att assist_p90,xT_pass_p90,progressive_passes_p90,passes_into_final_third_p90,total won contest_p90,0.35,0.1,0.25,0.1,0.1,0.1
+Connector,passes_into_final_third_p90,forward_passes_p90,total accurate pass_p90,pass_success_pct_p90,progressive_passes_p90,xT_pass_p90,0.15,0.2,0.3,0.1,0.125,0.125

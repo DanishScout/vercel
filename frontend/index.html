@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PER 90</title>
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gabarito:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- PC & MOBIL SIDEBAR NAVIGATION (Permanent menu på skærmen) -->
+        <aside class="sidebar">
+            <div class="logo" style="cursor: pointer;" onclick="switchView('landing')">
+                <span class="logo-main">PER</span><span class="logo-sub">90</span>
+            </div>
+            <nav class="nav-menu" onclick="this.classList.toggle('mobile-open')">
+                <button class="nav-item active" onclick="event.stopPropagation(); switchView('landing'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa-solid fa-house"></i> <span>Home</span>
+                </button>
+                <button class="nav-item" onclick="event.stopPropagation(); switchView('pizza'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa-solid fa-chart-pie"></i> <span>Pizza Chart</span>
+                </button>
+                <button class="nav-item" onclick="event.stopPropagation(); switchView('player_stats'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa-solid fa-id-card-clip"></i> <span>Player Stats</span>
+                </button>
+                <button class="nav-item" onclick="event.stopPropagation(); switchView('radar'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa-solid fa-circle-nodes"></i> <span>Radar Chart</span>
+                </button>
+                <button class="nav-item" onclick="event.stopPropagation(); switchView('scatter'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa-solid fa-chart-line"></i> <span>Scatter Plot</span>
+                </button>
+                <button class="nav-item" onclick="event.stopPropagation(); switchView('table'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa fa-list-ol"></i> <span>Table</span>
+                </button>
+                <button class="nav-item" onclick="event.stopPropagation(); switchView('stat_filters'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa-solid fa-filter"></i> <span>Stat Filters</span>
+                </button>
+                <button class="nav-item" onclick="event.stopPropagation(); switchView('similarity'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa-solid fa-people-arrows"></i> <span>Similarity</span>
+                </button>
+                <button class="nav-item" onclick="event.stopPropagation(); switchView('ranking'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa-solid fa-arrow-down-1-9"></i> <span>Role Ranks</span>
+                </button>
+                <button class="nav-item" onclick="event.stopPropagation(); switchView('eventdata'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa-solid fa-location-crosshairs"></i> <span>Event Data</span>
+                </button>
+                <button class="nav-item" onclick="event.stopPropagation(); switchView('matchreport'); document.querySelector('.nav-menu').classList.remove('mobile-open');">
+                    <i class="fa-solid fa-file-invoice"></i> <span>Match Report</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- DYNAMISK INDHOLDSOMRÅDE: Her sprøjter JavaScript alt indhold ind -->
+        <main class="main-content" id="dynamic-content-area">
+            <!-- Loader automatisk din Joga Bonito-forside ved opstart -->
+        </main>
+
+    </div>
+
+    <!-- Slørings-overlay til din bundskuffe (Drawer) -->
+    <div class="filter-drawer-overlay" id="global-drawer-overlay" onclick="closeGlobalDrawer()"></div>
+
+    <!-- Core App Frontend Engines -->
+    <script src="global.js"></script>
+    <script src="pizza.js"></script>
+    <script src="stats.js"></script> 
+    <script src="radar.js"></script> 
+    <script src="scatter.js"></script> 
+    <script src="table.js"></script> 
+    <script src="filters.js"></script>
+    <script src="similarity.js"></script>
+    <script src="ranking.js"></script>
+    <script src="matchreport.js"></script>
+    <script src="eventdata.js"></script>
+
+
+    <script>
+        // Sørger for at starte appen op på 'Home'-visningen med det samme ved indlæsning
+        document.addEventListener("DOMContentLoaded", () => {
+            if (typeof switchView === 'function') switchView('landing');
+        });
+
+        // Nemme globale funktioner til at åbne og lukke filterskuffen (Styres via din style.css)
+        function openGlobalDrawer() {
+            const overlay = document.getElementById('global-drawer-overlay');
+            const drawer = document.querySelector('.filter-drawer');
+            if (overlay) overlay.classList.add('active');
+            if (drawer) drawer.classList.add('active');
+        }
+        
+        function closeGlobalDrawer() {
+            const overlay = document.getElementById('global-drawer-overlay');
+            const drawer = document.querySelector('.filter-drawer');
+            if (overlay) overlay.classList.remove('active');
+            if (drawer) drawer.classList.remove('active');
+        }
+    </script>
+</body>
+</html>
