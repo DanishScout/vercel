@@ -225,16 +225,32 @@ function triggerEventDataDownload(filename, elementId) {
 
 
 // ==========================================================================
-// PER 90 - EVENTDATA.JS - DEL 3 AF 7 (API-INTEGRATION & GENEREL VISUEL HEADER)
-// ==========================================================================
-
 async function fetchWhoScoredEventFeed() {
-    const urlInput = getEvEl("ev-url-input"); const spinner = getEvEl("ev-spinner");
+    const urlInput = getEvEl("ev-url-input"); 
+    const spinner = getEvEl("ev-spinner");
     if (!urlInput || !urlInput.value.trim()) return;
 
     spinner.style.display = "inline-block";
+    
+    // 🔗 Vi sender WhoScored-linket igennem en gratis CORS-proxy
+    const targetUrl = urlInput.value.trim();
+    const proxyUrl = `https://allorigins.win{encodeURIComponent(targetUrl)}`;
+
     try {
-        const res = await fetch(`${API_BASE_URL}/api/fetch-events?url=${encodeURIComponent(urlInput.value.trim())}`);
+        // 1) Hent WhoScored-kildekoden ned som rå tekst via proxyen
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error("Proxy-serveren fejlede");
+        
+        const proxyData = await response.json();
+        const rawHtmlText = proxyData.contents; // Her ligger kildekoden!
+
+        // 2) Send kildekoden direkte til din Render-backend via en POST-anmodning
+        const res = await fetch(`${API_BASE_URL}/api/process-events`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ html: rawHtmlText })
+        });
+
         if (res.ok) {
             EV_GLOBAL_DATA = await res.json();
             EV_SELECTED_TEAM = EV_GLOBAL_DATA.match_info.homeId;
@@ -246,11 +262,17 @@ async function fetchWhoScoredEventFeed() {
             getEvEl("ev-display-viewport").style.display = "block";
             switchEventTab(EV_ACTIVE_TAB);
         } else {
-            const err = await res.json(); alert(`Fejl: ${err.detail}`);
+            const err = await res.json(); 
+            alert(`Fejl fra backend: ${err.detail}`);
         }
-    } catch (e) { console.error(e); alert("Fejl under indlæsning af WhoScored hændelser."); }
-    finally { spinner.style.display = "none"; }
+    } catch (e) { 
+        console.error(e); 
+        alert("Fejl: Kunne ikke hente eller behandle WhoScored hændelser."); 
+    } finally { 
+        spinner.style.display = "none"; 
+    }
 }
+
 
 function switchEventTab(tabId) {
     EV_ACTIVE_TAB = tabId;
