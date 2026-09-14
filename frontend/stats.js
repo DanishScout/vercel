@@ -7,6 +7,9 @@ let STATS_CURRENT_PLAYER = "";
 let STATS_ACTIVE_CATEGORIES = [...STATS_CATEGORIES_LIST];
 let STATS_GLOBAL_PAYLOAD = null;
 
+// 🔗 INDSÆT DENNE LINJE (Erstat med dit eget rigtige Render-link):
+const API_BASE_URL = "https://vercel-3ne6.vercel.app/";
+
 const $s = id => document.getElementById(id);
 
 // 🎨 CORE DESIGN INJECTION (DINE ORIGINALE KLASSER BEVARET 1:1)
