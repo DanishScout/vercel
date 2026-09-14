@@ -234,7 +234,7 @@ async function fetchWhoScoredEventFeed() {
     
     // 🔗 Vi sender WhoScored-linket igennem en gratis CORS-proxy
     const targetUrl = urlInput.value.trim();
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+    const proxyUrl = `https://api.codetabs.com/v1/proxy?url=${encodeURIComponent(targetUrl)}`;
 
 
     try {
