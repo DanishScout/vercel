@@ -5,6 +5,7 @@ pandas
 numpy
 selenium
 selenium-stealth
+
 bs4
 Pillow
 
