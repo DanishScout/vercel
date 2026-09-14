@@ -231,32 +231,17 @@ async function fetchWhoScoredEventFeed() {
     if (!urlInput || !urlInput.value.trim()) return;
 
     spinner.style.display = "inline-block";
-    
-    // 🔗 Vi sender WhoScored-linket igennem en gratis CORS-proxy
     const targetUrl = urlInput.value.trim();
-    const proxyUrl = `https://api.codetabs.com/v1/proxy?url=${encodeURIComponent(targetUrl)}`;
-
 
     try {
-        // 1) Hent WhoScored-kildekoden ned som rå tekst via proxyen
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error("Proxy-serveren fejlede");
-        
-        const proxyData = await response.json();
-        const rawHtmlText = proxyData.contents; // Her ligger kildekoden!
-
-        // 2) Send kildekoden direkte til din Render-backend via en POST-anmodning
-        const res = await fetch(`${API_BASE_URL}/api/process-events`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ html: rawHtmlText })
-        });
+        // Vi kalder din egen Render-backend direkte og sender URL'en med som et Query-parameter
+        const res = await fetch(`${API_BASE_URL}/api/fetch-events?url=${encodeURIComponent(targetUrl)}`);
 
         if (res.ok) {
             EV_GLOBAL_DATA = await res.json();
             EV_SELECTED_TEAM = EV_GLOBAL_DATA.match_info.homeId;
             
-            const firstPId = Object.keys(EV_GLOBAL_DATA.players_map)[0];
+            const firstPId = Object.keys(EV_GLOBAL_DATA.players_map);
             EV_SELECTED_PLAYER = firstPId || "";
 
             getEvEl("ev-tabs-bar").style.display = "flex";
@@ -268,11 +253,12 @@ async function fetchWhoScoredEventFeed() {
         }
     } catch (e) { 
         console.error(e); 
-        alert("Fejl: Kunne ikke hente eller behandle WhoScored hændelser."); 
+        alert("Fejl: Kunne ikke oprette forbindelse til din Render-backend."); 
     } finally { 
         spinner.style.display = "none"; 
     }
 }
+
 
 
 function switchEventTab(tabId) {
