@@ -5,7 +5,7 @@
 // Finder automatisk ud af, om du tester lokalt eller kører live på Render
 const API_BASE_URL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' 
     ? 'http://127.0.0.1:8000' 
-    : 'https://render-1-65df.onrender.com'; // <-- INDSÆT DIT UNIKKE RENDER-LINK HER!
+    : 'https://vercel-git-306266126462.europe-west1.run.app'; // <-- INDSÆT DIT UNIKKE RENDER-LINK HER!
 
 
 // Global reference til dit pizza-chart objekt
