@@ -6,6 +6,11 @@ import pandas as pd
 import os
 import requests
 import base64
+import sys
+
+# 🎯 DE 2 NYE LINJER DER FIXER VERCEL-FEJLEN:
+CURRENT_BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(CURRENT_BACKEND_DIR)
 
 app = FastAPI(
     title="PER 90 - Analytics API Engine",
