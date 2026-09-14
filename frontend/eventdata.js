@@ -234,7 +234,8 @@ async function fetchWhoScoredEventFeed() {
     
     // 🔗 Vi sender WhoScored-linket igennem en gratis CORS-proxy
     const targetUrl = urlInput.value.trim();
-    const proxyUrl = `https://allorigins.win{encodeURIComponent(targetUrl)}`;
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
 
     try {
         // 1) Hent WhoScored-kildekoden ned som rå tekst via proxyen
