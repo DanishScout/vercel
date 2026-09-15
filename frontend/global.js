@@ -5,7 +5,7 @@
 // Finder automatisk ud af, om du tester lokalt eller kører live på Render
 const API_BASE_URL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' 
     ? 'http://127.0.0.1:8000' 
-    : 'https://vercel-git-306266126462.europe-west1.run.app'; // <-- INDSÆT DIT UNIKKE RENDER-LINK HER!
+    : 'https://render-1-65df.onrender.com'; // <-- INDSÆT DIT UNIKKE RENDER-LINK HER!
 
 
 // Global reference til dit pizza-chart objekt
@@ -184,30 +184,6 @@ function switchView(viewId) {
         } else {
             console.error("FEJL: initMatchReportView() blev ikke fundet i matchreport.js");
         }
-    }
-
-    // Visning: WHOSCORED ADVANCED EVENT DATA ENGINE
-    else if (viewId === 'eventdata') {
-        if (typeof initEventDataView === 'function') {
-            initEventDataView(contentArea);
-        } else {
-            console.error("FEJL: initEventDataView() blev ikke fundet i eventdata.js");
-        }
-    }
-
-
-    // Visning: FALLBACK PLACEHOLDERS (De resterende 5 faner under opbygning)
-    else {
-        const faneNavn = viewId.replace('_', ' ').toUpperCase();
-        contentArea.innerHTML = `
-            <section class="content-view active" style="text-align: center; padding: 60px 20px;">
-                <div style="margin-bottom: 20px;">
-                    <i class="fa-solid fa-screwdriver-wrench" style="font-size: 60px; color: var(--text-muted); opacity: 0.5;"></i>
-                </div>
-                <h2 style="font-size: 24px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px;">${faneNavn}</h2>
-                <p style="color: var(--text-muted);">Denne fane is under opbygning. Logik og diagrammer tilføjes i din ${viewId}.js fil senere.</p>
-            </section>
-        `;
     }
 }
 
