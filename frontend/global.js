@@ -2,7 +2,7 @@
 // PER 90 - GLOBAL.JS - GLASSMORPHISM DESIGN MATRIX - DEL 1 AF 3
 // ==========================================================================
 
-const API_BASE_URL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : window.location.origin;
+const API_BASE_URL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' ? 'http://127.0.0.1:8000' : 'https://per90-backend.onrender.com';
 let pizzaChartInstance = null;
 
 const minimalSaaSStyles = `
