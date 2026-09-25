@@ -5,6 +5,8 @@ from fastapi import APIRouter, HTTPException, Query
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Any
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import cosine_similarity
 
 router = APIRouter(prefix="/api", tags=["similarity"])
 
@@ -60,13 +62,12 @@ METRIC_CONFIG = {
     }
 }
 
-
 # Flad ordbog til hurtigt opslag på tværs af kategorier
 CUSTOM_TITLES_P90 = {}
 for category, metrics in METRIC_CONFIG.items():
     CUSTOM_TITLES_P90.update(metrics)
 
-# Inverteret ordbog til at oversætte fra Custom Title (f.eks. "npxG") tilbage til CSV-kolonne (f.eks. "xG_p90")
+# Inverteret ordbog til at oversætte fra Custom Title tilbage til CSV-kolonne
 REVERSE_LOOKUP = {v: k for k, v in CUSTOM_TITLES_P90.items()}
 
 
@@ -82,7 +83,6 @@ def get_similarity_config():
 def search_similar_players(
     target_player: str = Query(..., description="Navnet på spilleren der skal sammenlignes med"),
     selected_metrics: List[str] = Query(..., description="De valgte metrikker sendt som pæne navne"),
-    # 🎯 RETTELSE: Defineres explicit som List[str], så FastAPI tillader multivalg i URL'en
     leagues: List[str] = Query(None, description="Filtrer på specifikke ligaer"),
     positions: List[str] = Query(None, description="Filtrer på specifikke positioner"),
     min_age: int = Query(0),
@@ -96,23 +96,25 @@ def search_similar_players(
 
     df = GLOBAL_DATASET.copy()
 
-    # Find målinstansen (Target Player) inden filtrering af resten af ligaen
+    # Find målinstancen (Target Player) inden filtrering af resten af ligaen
     target_row = df[df['Player Name'].str.lower() == target_player.lower()]
     if target_row.empty:
         raise HTTPException(status_code=404, detail=f"Spilleren '{target_player}' blev ikke fundet.")
     
     target_player_data = target_row.iloc[0]
 
+    # Dynamisk Goalkeeper-tjek fuldstændig ligesom i Streamlit (fig.py)
+    pos_col = 'Pos.' if 'Pos.' in df.columns else 'Position'
+    is_gk = target_player_data[pos_col] == 'GK'
+    df = df[df[pos_col] == 'GK'] if is_gk else df[df[pos_col] != 'GK']
+
+    # Globale filtre (Ligaer, Positioner, Alder, Minutter)
     if leagues and len(leagues) > 0:
         df = df[df['League'].isin(leagues)]
         
     if positions and len(positions) > 0:
-        # Præcis samme positions-kolonnetjek som i din table.py!
-        pos_col = 'Pos.' if 'Pos.' in df.columns else ('Position' if 'Position' in df.columns else 'Position')
         df = df[df[pos_col].isin(positions)]
 
-        
-    # Alder- og minutfiltrering kører videre som før
     if 'Age' in df.columns:
         df = df[(df['Age'] >= min_age) & (df['Age'] <= max_age)]
     
@@ -120,70 +122,72 @@ def search_similar_players(
     if mins_col in df.columns:
         df = df[(df[mins_col] >= min_mins) & (df[mins_col] <= max_mins)]
 
-    # ... RESTEN AF DIN METRIC-NORMALISERING OG EUKLIDISKE BEREGNING ER UÆNDRET HERFRA ...
-
-
-    # Sørg for at target_player altid overlever filtreringen midlertidigt hvis nødvendigt,
-    # eller blot tilføjes som vektor-reference.
+    # Sørg for at fjerne target_player fra listen over mulige resultater (ligesom i fig.py)
+    df_filtered = df[df['Player Name'].str.lower() != target_player.lower()]
 
     # Oversæt valgte metrikker til _p90 kolonner
     p90_columns = []
     for metric_title in selected_metrics:
         if metric_title in REVERSE_LOOKUP:
             csv_col = REVERSE_LOOKUP[metric_title]
-            if csv_col in df.columns:
+            if csv_col in df_filtered.columns and pd.notna(target_player_data[csv_col]):
                 p90_columns.append(csv_col)
 
     if not p90_columns:
-        raise HTTPException(status_code=400, detail="Ingen matchende metrikker.")
+        raise HTTPException(status_code=400, detail="Ingen matchende eller valide metrikker fundet.")
 
-    target_vector = np.array([
-        float(target_player_data[col]) if not pd.isna(target_player_data.get(col)) else 0.0 
-        for col in p90_columns
-    ])
+    # Drop rækker der mangler de valgte metrikker (dropna(subset=metrics) fra fig.py)
+    df_filtered = df_filtered.dropna(subset=p90_columns)
 
-    # Min-Max normalisering (baseret på det nu filtrerede/relevante datasæt)
-    min_max_dict = {}
-    for col in p90_columns:
-        max_val = float(df[col].max()) if not df[col].empty else 1.0
-        min_val = float(df[col].min()) if not df[col].empty else 0.0
-        if max_val == min_val:
-            max_val += 0.001
-        min_max_dict[col] = {"min": min_val, "max": max_val}
+    if df_filtered.empty:
+        return {
+            "target_player": target_player,
+            "metrics_used": selected_metrics,
+            "similar_players": []
+        }
 
+    # ==========================================================================
+    # 🎯 FULDSÆNDIG IDENTISK STREAMLIT-MATEMATIK (StandardScaler + Cosine Similarity)
+    # ==========================================================================
+    
+    # Byg den kombinerede dataframe til matrix-skalering (Target øverst, derefter filtrerede spillere)
+    target_series = target_player_data[p90_columns].to_frame().T
+    filtered_series = df_filtered[p90_columns]
+    combined_df = pd.concat([target_series, filtered_series]).astype(float)
+
+    # 1. StandardScaler normalisering (Z-Score)
+    scaler = StandardScaler()
+    scaled_matrix = scaler.fit_transform(combined_df)
+
+    # 2. Cosine Similarity beregning
+    target_vector_scaled = scaled_matrix[0].reshape(1, -1)
+    players_matrix_scaled = scaled_matrix[1:]
+    
+    sim_scores = cosine_similarity(target_vector_scaled, players_matrix_scaled).flatten()
+
+    # Gendan scores til procentform (sim * 100 ligesom i fig.py)
+    df_filtered = df_filtered.copy()
+    df_filtered["Similarity"] = sim_scores * 100
+
+    # Find de top 10 mest lignende spillere
+    top_similar_df = df_filtered.nlargest(10, "Similarity").reset_index(drop=True)
+
+    # ==========================================================================
+    # 🎯 VISUEL NORMALISERING (Formel til udfyldning af diagram-barrer)
+    # ==========================================================================
+    def normalize_bar_score(series):
+        if series.max() == series.min():
+            return pd.Series([50] * len(series), index=series.index)
+        return 100 * (series - series.min()) / (series.max() - series.min())
+
+    if not top_similar_df.empty:
+        top_similar_df["bar_score"] = normalize_bar_score(top_similar_df["Similarity"])
+    else:
+        top_similar_df["bar_score"] = 0
+
+    # Pak resultatet pænt ind til din similarity.js frontend
     results = []
-    pos_col = 'Pos.' if 'Pos.' in df.columns else 'Position'
-
-    for _, row in df.iterrows():
-        if pd.isna(row.get('Player Name')) or str(row['Player Name']).lower() == target_player.lower():
-            continue
-
-        try:
-            current_vector = []
-            target_vector_norm = []
-            
-            for idx, col in enumerate(p90_columns):
-                val = float(row[col]) if not pd.isna(row[col]) else 0.0
-                t_val = target_vector[idx]
-                
-                mn = min_max_dict[col]["min"]
-                mx = min_max_dict[col]["max"]
-                
-                norm_val = (val - mn) / (mx - mn)
-                norm_t_val = (t_val - mn) / (mx - mn)
-                
-                current_vector.append(norm_val)
-                target_vector_norm.append(norm_t_val)
-
-            current_vector = np.array(current_vector)
-            target_vector_norm = np.array(target_vector_norm)
-
-            distance = np.linalg.norm(target_vector_norm - current_vector)
-            max_possible_dist = np.sqrt(len(p90_columns))
-            similarity_pct = max(0.0, min(100.0, (1.0 - (distance / max_possible_dist)) * 100.0))
-        except Exception:
-            continue
-
+    for i, row in top_similar_df.iterrows():
         extracted_mins = row.get('total mins played', row.get('Mins', 0))
         mins_played = int(extracted_mins) if not pd.isna(extracted_mins) else 0
 
@@ -198,15 +202,13 @@ def search_similar_players(
             "age": int(row.get('Age', 0)) if not pd.isna(row.get('Age')) else 0,
             "mins_played": mins_played,
             "team_id": str(row.get('contestantId', 'nan')),
-            "similarity_score": round(similarity_pct, 1),
+            "similarity_score": round(float(row["Similarity"]), 1),
+            "bar_score": round(float(row["bar_score"]), 1),  # Sendes med til frontend-barren
             "metrics": player_metrics
         })
-
-    # Sorter og returner de ægte top 10 efter filtrering
-    top_similar = sorted(results, key=lambda x: x['similarity_score'], reverse=True)[:10]
 
     return {
         "target_player": target_player,
         "metrics_used": selected_metrics,
-        "similar_players": top_similar
+        "similar_players": results
     }

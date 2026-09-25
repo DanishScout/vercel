@@ -163,7 +163,7 @@ async function initPlayerStatsView(container) {
                 <div class="stats-blocks-container" id="stats-live-blocks-grid"></div>
             </div>
             <div style="display: flex; justify-content: center; margin-top: 30px; width: 100%;">
-                <button onclick="downloadPlayerStatsPNG()" style="background: var(--accent-purple); color: #06140c; border: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px;">Download Profile as PNG</button>
+                <button onclick="downloadPlayerStatsPNG()" style="background: var(--accent-purple); color: #06140c; border: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px;">Download as PNG</button>
             </div>
         </section>
     `;
@@ -395,7 +395,7 @@ function downloadPlayerStatsPNG() {
     setTimeout(() => {
         html2canvas(clone, { scale: 3, pixelRatio: 1, backgroundColor: "#0B1220", useCORS: true, logging: false }).then(canvas => {
             const link = document.createElement("a"); 
-            link.download = `player_stats_${STATS_CURRENT_PLAYER.replace(/\s+/g, '_')}.png`;
+            link.download = "player_stats.png";
             link.href = canvas.toDataURL("image/png"); link.click();
             clone.remove(); overrideStyle.remove();
         }).catch(e => { console.error("Fejl under tvunget PC-download:", e); clone.remove(); overrideStyle.remove(); });

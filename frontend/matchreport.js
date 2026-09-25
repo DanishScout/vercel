@@ -6,6 +6,7 @@ let MATCH_GLOBAL_DATA = null;       // Indeholder den komplette JSON-datapakke f
 let MATCH_ACTIVE_TAB = "stats";     // Aktiv visningsfane: 'stats', 'xg', 'momentum', 'performers', 'player'
 let MATCH_SELECTED_PLAYER = null;   // Den nuværende valgte spiller i Fig 5 (Player Stats)
 let MATCH_ZONES_PERIOD = "total";
+let MATCH_SHOTMAP_TEAM = "home";     // Styrer holdsynlighed i det nye avancerede Shotmap: 'home' eller 'away'
 
 // 🎯 ISOLERET SELEKTOR-FUNKTION: Forhindrer 'already been declared' fejl permanent på tværs af appen!
 const getMatchReportEl = id => document.getElementById(id);
@@ -79,6 +80,16 @@ document.addEventListener("DOMContentLoaded", () => {
         .mr-metric-row:last-child { margin-bottom: 0; }
         .mr-wave-box { width: 100%; height: 16px; margin-top: auto; }
         .mr-wave-box svg { width: 100%; height: 100%; }
+        .mr-shot-dot-interactive { position: absolute; transform: translate(-50%, -50%); border-radius: 50%; border: 1px solid #040812; font-weight: 900; cursor: pointer; transition: transform 0.15s ease; z-index: 12; }
+        .mr-shot-dot-interactive:hover { transform: translate(-50%, -50%) scale(1.3); z-index: 99; }
+        
+        .mr-shot-tooltip {
+            position: absolute; background: rgba(11, 20, 38, 0.96); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 8px; padding: 10px 14px; min-width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            backdrop-filter: blur(6px); pointer-events: none; z-index: 100; opacity: 0; transition: opacity 0.15s ease;
+            display: flex; flex-direction: column; gap: 4px; box-sizing: border-box;
+        }
+
         
         @media (max-width: 600px) {
             .mr-search-box { flex-direction: column; padding: 15px; gap: 10px; }
@@ -218,18 +229,19 @@ function initMatchReportView(container) {
 
             <!-- URL SØGEBJÆLKE (Spinner fjernet fra knappen) -->
             <div class="mr-search-box">
-                <input type="text" id="mr-url-input" class="mr-input-field" placeholder="Indsæt FotMob kamp-URL (f.eks. https://fotmob.com...)" value="https://www.fotmob.com/en-GB/matches/bodoglimt-vs-bayern-munchen/2qvz54#6106240">
+                <input type="text" id="mr-url-input" class="mr-input-field" placeholder="Insert FotMob match URL..." value="https://www.fotmob.com/en-GB/matches/bodoglimt-vs-bayern-munchen/2qvz54#6106240">
                 <button class="mr-btn" id="mr-submit-btn" onclick="fetchMatchReportFeed()">
                     <span id="mr-btn-text">Load data</span>
                 </button>
             </div>
 
             <div class="mr-tabs-nav" id="mr-tabs-bar" style="display:none;">
-                <button class="mr-tab-item active" id="tab-btn-stats" onclick="switchMatchTab('stats')">Match Stats</button>
+                <button class="mr-tab-item active" id="tab-btn-stats" onclick="switchMatchTab('stats')">Match Report</button>
                 <button class="mr-tab-item" id="tab-btn-xg" onclick="switchMatchTab('xg')">Accumulated xG</button>
                 <button class="mr-tab-item" id="tab-btn-momentum" onclick="switchMatchTab('momentum')">Game State</button>
                 <button class="mr-tab-item" id="tab-btn-performers" onclick="switchMatchTab('performers')">Top Performers</button>
                 <button class="mr-tab-item" id="tab-btn-player" onclick="switchMatchTab('player')">Player Stats</button>
+                <button class="mr-tab-item" id="tab-btn-shotmap" onclick="switchMatchTab('shotmap')">Interactive Shotmap</button>
                 <button class="mr-tab-item" id="tab-btn-zones" onclick="switchMatchTab('zones')">Attacking Zones</button>
             </div>
 
@@ -238,7 +250,7 @@ function initMatchReportView(container) {
             <div class="mr-scale-viewport" id="mr-display-viewport" style="display:block; width:100%;">
                 <div id="mr-display-target-area" style="width:100%;">
                     <div id="mr-placeholder-msg" style="text-align:center; padding:80px 20px; color:rgba(255,255,255,0.4); font-size:14px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase;">
-                        Press 'Load Data' to view the different visualizations
+                        Insert URL as seen above and press 'Load Data'
                     </div>
                 </div>
             </div>
@@ -308,13 +320,15 @@ async function renderActiveMatchVisualization() {
     else if (MATCH_ACTIVE_TAB === "momentum") buildFig3GameState();
     else if (MATCH_ACTIVE_TAB === "performers") buildFig4TopPerformers();
     else if (MATCH_ACTIVE_TAB === "player") await buildFig5PlayerStats();
-    else if (MATCH_ACTIVE_TAB === "zones") buildFig6AttackingZones(); // <--- TILFØJET HER!
+    else if (MATCH_ACTIVE_TAB === "shotmap") buildFig7Shotmap(); // 🎯 TILFØJET HER!
+    else if (MATCH_ACTIVE_TAB === "zones") buildFig6AttackingZones();
 }
+
 
 function resetLoadingState(targetArea) {
     targetArea.innerHTML = `
         <div id="mr-placeholder-msg" style="text-align:center; padding:80px 20px; color:rgba(255,255,255,0.4); font-size:14px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase;">
-            Press 'Load Data' to view the different visualizations
+            Insert URL as seen above and press 'Load Data'
         </div>
     `;
 }
@@ -347,23 +361,23 @@ function generateSharedHeaderHTML(subtitle) {
                 <div style="display:flex; align-items:center; gap:12px; font-size:22px; font-weight:900; text-transform:uppercase; justify-content:flex-end; flex:1;">
                     <span style="color:${info.homeColor};">${info.homeName}</span>
                     <div style="width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; padding:5px;">
-                        <!-- RETTELSE: Bruger nu den lokale Base64-streng fra din backend for hjemmeholdet -->
                         <img src="${info.homeLogoB64}" style="max-width:100%; max-height:100%; object-fit:contain;">
                     </div>
                 </div>
                 <div style="font-size:26px; font-weight:900; color:#fff; letter-spacing:1px; padding:0 10px;">${homeGoals} - ${awayGoals}</div>
                 <div style="display:flex; align-items:center; gap:12px; font-size:22px; font-weight:900; text-transform:uppercase; justify-content:flex-start; flex:1;">
                     <div style="width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; padding:5px;">
-                        <!-- RETTELSE: Bruger nu den lokale Base64-streng fra din backend for udeholdet -->
                         <img src="${info.awayLogoB64}" style="max-width:100%; max-height:100%; object-fit:contain;">
                     </div>
                     <span style="color:${info.awayColor};">${info.awayName}</span>
                 </div>
             </div>
-            <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.3); letter-spacing:1.2px; text-transform:uppercase; margin-top:8px;">${subtitle} via per-90.streamlit.app</div>
+            <!-- 🎯 FIX: 'via per90.vercel.app' er fjernet herfra, så undertitlen står helt ren -->
+            <div style="font-size:11px; font-weight:700; color:rgba(255,255,255,0.3); letter-spacing:1.2px; text-transform:uppercase; margin-top:8px;">${subtitle}</div>
         </div>
     `;
 }
+
 
 // ==========================================================================
 // PER 90 - MATCHREPORT.JS - DEL 6 AF 10 (FIG 1 – MATCH STATS PITCH)
@@ -383,15 +397,57 @@ function buildFig1MatchStats() {
         const pctLeft = effectiveTeam == info.homeId ? (shot.x / 105) * 100 : 100 - ((shot.x / 105) * 100);
         const pctTop = effectiveTeam == info.homeId ? 100 - ((shot.y / 68) * 100) : (shot.y / 68) * 100;
 
-        let color = "#C82929"; let content = "";
-        if (is_og) { color = "#D1257E"; content = "&times;"; }
-        else if (shot.eventType === "Goal") color = "#47B745";
-        else if (shot.expectedGoalsOnTarget > 0) color = "#C8C329";
+        // Hvis det er et selvmål, styler vi det udelukkende som et rent kryds (X)
+        if (is_og) {
+            const baseColor = "209, 37, 126"; // Pink-ish matcher legenden (#D1257E)
+            return `<div class="mr-shot-dot" style="
+                left: ${pctLeft.toFixed(2)}%; 
+                top: ${pctTop.toFixed(2)}%; 
+                width: 14px; 
+                height: 14px; 
+                background: transparent; 
+                border: none; 
+                color: rgb(${baseColor}); 
+                line-height: 14px; 
+                font-size: 22px;
+                font-weight: 400;
+                box-sizing: border-box;
+                box-shadow: none;
+                /* Neon-glød direkte på selve kryds-teksten i stedet for boksen */
+                filter: drop-shadow(0 0 3px rgba(${baseColor}, 0.8)) drop-shadow(0 0 8px rgba(${baseColor}, 0.4));
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            ">&times;</div>`;
+        }
 
-        const size = is_og ? 15 : Math.max(10, Math.min(48, Math.sqrt(shot.expectedGoals) * 30));
+        // Standard logik for normale skud (Mål, Inden for rammen, Forbi)
+        let baseColor = "200, 41, 41";   // Off Target / Red
+        if (shot.eventType === "Goal") {
+            baseColor = "71, 183, 69";   // Goal / Green
+        } else if (shot.expectedGoalsOnTarget > 0) {
+            baseColor = "200, 195, 41";  // On Target / Yellow
+        }
 
-        return `<div class="mr-shot-dot" style="left:${pctLeft.toFixed(2)}%; top:${pctTop.toFixed(2)}%; width:${size}px; height:${size}px; background:${is_og ? 'transparent' : color}; color:${color}; line-height:${size-2}px; font-size:${parseInt(size*1.6)}px;">${content}</div>`;
+        const size = Math.max(10, Math.min(48, Math.sqrt(shot.expectedGoals) * 30));
+
+        return `<div class="mr-shot-dot" style="
+            left: ${pctLeft.toFixed(2)}%; 
+            top: ${pctTop.toFixed(2)}%; 
+            width: ${size}px; 
+            height: ${size}px; 
+            background: rgba(${baseColor}, 0.15); 
+            border: 1px solid rgba(${baseColor}, 1); 
+            color: #ffffff; 
+            line-height: ${size - 3}px; 
+            font-size: ${parseInt(size * 1.6)}px;
+            box-sizing: border-box;
+            box-shadow: 0 0 4px rgba(${baseColor}, 0.8), 0 0 12px rgba(${baseColor}, 0.4), inset 0 0 4px rgba(${baseColor}, 0.4);
+        "></div>`;
+
     }).join('');
+
+
 
     // 2. Map dine 8 Streamlit-metrics til rækker
     const statMapping = [
@@ -404,7 +460,6 @@ function buildFig1MatchStats() {
         { apiKey: 'Ball possession', label: 'POSSESSION (%)' },
         { apiKey: 'Duels won', label: 'DUELS WON' }
     ];
-
     const statsOverlayRows = statMapping.map(mapping => {
         const originalStat = MATCH_GLOBAL_DATA.team_stats.find(s => s.title === mapping.apiKey);
         if (!originalStat) return '';
@@ -413,25 +468,34 @@ function buildFig1MatchStats() {
         const aNum = parseFloat(originalStat.away.toString().replace('%', '').split('/')) || 0;
         const hPct = (hNum + aNum) > 0 ? (hNum / (hNum + aNum)) * 100 : 50;
 
-        // Elementerne samles centreret og tæt om midten med et naturligt gap
+        // 🛠️ COMPACT SVG FIX: Sæt højden ned til 20px for at klemme rækkerne tættere sammen
         return `
-            <div class="mr-stat-row">
-                <div class="mr-stat-meta" style="display: flex !important; justify-content: center !important; align-items: center !important; width: 100% !important; gap: 8px !important;">
-                    <span style="color:${homeColor}; font-weight:900; font-size: 14px; line-height: 1; flex-shrink: 0;">${originalStat.home}</span>
-                    <span class="mr-stat-lbl" style="font-size:9px; font-weight:800; color:rgba(255,255,255,0.7); text-align: center; white-space: nowrap;">${mapping.label}</span>
-                    <span style="color:${awayColor}; font-weight:900; font-size: 14px; line-height: 1; flex-shrink: 0;">${originalStat.away}</span>
-                </div>
-                <div class="mr-bar-track" style="height:4px; background:rgba(255,255,255,0.08); border-radius:2px;">
-                    <div style="width:${hPct}%; background:${homeColor}; height:100%;"></div>
-                    <div style="width:${100 - hPct}%; background:${awayColor}; height:100%;"></div>
-                </div>
+            <div style="display: block; width: 100%; height: 20px; margin-bottom: 5px; box-sizing: border-box; overflow: visible;">
+                <svg width="100%" height="20" viewBox="0 0 165 20" style="overflow: visible; display: block;">
+                    <!-- HJEMMEHOLDETS TAL (Venstrestillet på x="0") -->
+                    <text x="0" y="7" fill="${homeColor}" font-family="sans-serif" font-size="13" font-weight="900" text-anchor="start" dominant-baseline="central">${originalStat.home}</text>
+                    
+                    <!-- METRIC LABEL (Centreret absolut på midten x="82.5") -->
+                    <text x="82.5" y="7" fill="rgba(255,255,255,0.7)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.5" text-anchor="middle" dominant-baseline="central">${mapping.label}</text>
+                    
+                    <!-- UDEHOLDETS TAL (Højrestillet på x="165") -->
+                    <text x="165" y="7" fill="${awayColor}" font-family="sans-serif" font-size="13" font-weight="900" text-anchor="end" dominant-baseline="central">${originalStat.away}</text>
+                    
+                    <!-- DYNAMISK STATS-BAR (Tegnet tættere op under tallene) -->
+                    <!-- Baggrundstrack -->
+                    <rect x="0" y="16" width="165" height="3.5" rx="1.75" fill="rgba(255,255,255,0.08)" />
+                    <!-- Hjemmeholdets bar-andel -->
+                    <rect x="0" y="16" width="${(hPct / 100) * 165}" height="3.5" rx="1.75" fill="${homeColor}" />
+                    <!-- Udeholdets bar-andel -->
+                    <rect x="${(hPct / 100) * 165}" y="16" width="${((100 - hPct) / 100) * 165}" height="3.5" rx="1.75" fill="${awayColor}" />
+                </svg>
             </div>`;
     }).join('');
 
     // 3. Render det samlede view med den strømlinede legende
     container.innerHTML = `
         <div class="mr-capture-card" id="fig1-capture">
-            ${generateSharedHeaderHTML("Match Report")}
+            ${generateSharedHeaderHTML("Match Report via per90.vercel.app")}
             
             <div class="mr-pitch-wrapper">
                 <svg viewBox="0 0 105 68">
@@ -457,52 +521,79 @@ function buildFig1MatchStats() {
 
                 <div class="mr-markers-layer">${shotsHTML}</div>
                 <!-- 🎯 ULTRA-SLIM REPARATION: Sættes nu til 165px bredde, så den sidder knivskarpt på midten af banen -->
-                <div class="mr-stats-overlay" style="width:165px; background:rgba(11, 18, 32, 0.85); padding:12px 10px; border-radius:12px;">${statsOverlayRows}</div>
+                <div class="mr-stats-overlay" style="width:165px; background:rgba(11, 18, 32, 0.25); padding:12px 10px; border-radius:12px;">${statsOverlayRows}</div>
             </div>
 
-            <!-- LEGENDE -->
+            <!-- LEGENDE (OPDATERET MED ABSOLUT TABLE-CELL FIX FOR PC-DOWNLOAD) -->
+                        <!-- LEGENDE (OPDATERET MED TEKST TÆTTERE PÅ XG-CIRKLERNE) -->
             <div style="width:100%; max-width:660px; display:flex; justify-content:space-between; align-items:center; margin-top:25px; padding:0 10px; color:rgba(255,255,255,0.5); font-size:10px; font-weight:800; letter-spacing:0.8px; text-transform:uppercase; box-sizing:border-box;">
                 
                 <!-- SKUD KATEGORIER -->
-                <div style="display:grid; grid-template-columns:auto auto; gap:12px 24px;">
-                    <div style="display:flex; align-items:center; gap:8px;"><div style="width:8px; height:8px; background:#47B745; border-radius:50%;"></div><span>Goal</span></div>
-                    <div style="display:flex; align-items:center; gap:8px;"><div style="width:8px; height:8px; background:#C8C329; border-radius:50%;"></div><span>On Target</span></div>
-                    <div style="display:flex; align-items:center; gap:8px;"><div style="width:8px; height:8px; display:flex; align-items:center; justify-content:center; font-size:12px; color:#D1257E; font-weight:900;">&times;</div><span>Own Goal</span></div>
-                    <div style="display:flex; align-items:center; gap:8px;"><div style="width:8px; height:8px; background:#C82929; border-radius:50%;"></div><span>Off Target</span></div>
+                <div style="display:grid; grid-template-columns:auto auto; gap:12px 14px;">
+                    <!-- GOAL -->
+                    <div style="width: 80px; height: 14px; display: block;">
+                        <svg width="100%" height="14" viewBox="0 0 80 14" style="overflow: visible; display: block;">
+                            <circle cx="6" cy="7" r="4" fill="#47B745" />
+                            <text x="15" y="7.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">GOAL</text>
+                        </svg>
+                    </div>
+                    <!-- ON TARGET -->
+                    <div style="width: 80px; height: 14px; display: block;">
+                        <svg width="100%" height="14" viewBox="0 0 80 14" style="overflow: visible; display: block;">
+                            <circle cx="6" cy="7" r="4" fill="#C8C329" />
+                            <text x="15" y="7.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">ON TARGET</text>
+                        </svg>
+                    </div>
+                    <!-- OWN GOAL -->
+                    <div style="width: 80px; height: 14px; display: block;">
+                        <svg width="100%" height="14" viewBox="0 0 80 14" style="overflow: visible; display: block;">
+                            <path d="M 2.5,3.5 L 9.5,10.5 M 9.5,3.5 L 2.5,10.5" fill="none" stroke="#D1257E" stroke-width="2.5" stroke-linecap="round" />
+                            <text x="15" y="7.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">OWN GOAL</text>
+                        </svg>
+                    </div>
+                    <!-- OFF TARGET -->
+                    <div style="width: 80px; height: 14px; display: block;">
+                        <svg width="100%" height="14" viewBox="0 0 80 14" style="overflow: visible; display: block;">
+                            <circle cx="6" cy="7" r="4" fill="#C82929" />
+                            <text x="15" y="7.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">OFF TARGET</text>
+                        </svg>
+                    </div>
                 </div>
 
                 <!-- ANGREBSRETNING -->
                 <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                     <span style="color:rgba(255,255,255,0.3); font-size:9px; letter-spacing:1px;">Attacking Direction</span>
-                    <div style="display:flex; align-items:center;">
+                    <div style="display:flex; align-items:center; height:12px;">
                         <!-- Udeholdets pil: Højre mod venstre -->
-                        <div style="width:40px; height:2px; position:relative; background:${awayColor};">
-                            <div style="position:absolute; left:0; top:-3px; border-top:4px solid transparent; border-bottom:4px solid transparent; border-right:6px solid ${awayColor};"></div>
-                        </div>
-                        
+                        <svg width="40" height="12" viewBox="0 0 40 12" style="display:block;">
+                            <path d="M 40,6 L 2,6 M 7,1 L 1,6 L 7,11" fill="none" stroke="${awayColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                         <!-- Lodret adskiller -->
-                        <div style="width:1px; height:12px; background:rgba(255,255,255,0.15); margin:0 6px;"></div>
-                        
+                        <div style="width:1px; height:12px; background:rgba(255,255,255,0.15); margin:0 10px;"></div>
                         <!-- Hjemmeholdets pil: Venstre mod højre -->
-                        <div style="width:40px; height:2px; position:relative; background:${homeColor};">
-                            <div style="position:absolute; right:0; top:-3px; border-top:4px solid transparent; border-bottom:4px solid transparent; border-left:6px solid ${homeColor};"></div>
-                        </div>
+                        <svg width="40" height="12" viewBox="0 0 40 12" style="display:block;">
+                            <path d="M 0,6 L 38,6 M 33,1 L 39,6 L 33,11" fill="none" stroke="${homeColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
                     </div>
                 </div>
 
-                <!-- xG STØRRELSER -->
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <span>Low xG</span>
-                    <div style="width:4px; height:4px; border:1px solid rgba(255,255,255,0.4); border-radius:50%;"></div>
-                    <div style="width:10px; height:10px; border:1px solid rgba(255,255,255,0.4); border-radius:50%;"></div>
-                    <div style="width:16px; height:16px; border:1px solid rgba(255,255,255,0.4); border-radius:50%;"></div>
-                    <span>High xG</span>
+                <!-- xG STØRRELSER (Smalere totalbredde og flyttet HIGH XG tættere på cirklerne) -->
+                <div style="width: 165px; height: 18px; display: block;">
+                    <svg width="100%" height="18" viewBox="0 0 165 18" style="overflow: visible; display: block;">
+                        <text x="0" y="9.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">LOW XG</text>
+                        <circle cx="54" cy="9" r="2" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1" />
+                        <circle cx="72" cy="9" r="5" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1" />
+                        <circle cx="94" cy="9" r="8" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1" />
+                        <text x="112" y="9.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">HIGH XG</text>
+                    </svg>
                 </div>
             </div>
         </div>
         <div style="text-align:center; margin-top:20px;"><button class="mr-btn" style="margin:auto;" onclick="triggerMatchReportDownload('match_report', 'fig1-capture')">Download as PNG</button></div>
     `;
 }
+
+
 
 // ==========================================================================
 // PER 90 - MATCHREPORT.JS - DEL 7 AF 10 (FIG 2 – ACCUMULATED xG TIMELINE)
@@ -514,11 +605,16 @@ function buildFig2AccumulatedXG() {
     const homeColor = info.homeColor || '#ff4d4d';
     const awayColor = info.awayColor || '#eed202';
 
-    // 1. Sorter og filtrer skuddata
-    const hShots = MATCH_GLOBAL_DATA.shotmap.filter(s => s.teamId == info.homeId && !s.isOwnGoal).sort((a,b)=>a.min-b.min);
-    const aShots = MATCH_GLOBAL_DATA.shotmap.filter(s => s.teamId == info.awayId && !s.isOwnGoal).sort((a,b)=>a.min-b.min);
+    // 1. Sorter og filtrer skuddata (Inkluderer KUN FirstHalf og SecondHalf)
+    const validShots = MATCH_GLOBAL_DATA.shotmap.filter(s => 
+        s.period === "FirstHalf" || s.period === "SecondHalf"
+    );
 
-    const maxMin = Math.max(90, ...MATCH_GLOBAL_DATA.shotmap.map(s=>s.min));
+    const hShots = validShots.filter(s => s.teamId == info.homeId && !s.isOwnGoal).sort((a,b)=>a.min-b.min);
+    const aShots = validShots.filter(s => s.teamId == info.awayId && !s.isOwnGoal).sort((a,b)=>a.min-b.min);
+
+    // Vi låser aksen til 90 minutter for ordinær spilletid
+    const maxMin = 90;
     const totXGHome = hShots.reduce((sum,s)=>sum+s.expectedGoals, 0);
     const totXGAway = aShots.reduce((sum,s)=>sum+s.expectedGoals, 0);
     
@@ -547,19 +643,23 @@ function buildFig2AccumulatedXG() {
     let svgGridLines = yTicks.map(t => `<line x1="0" y1="${100-(t/maxY)*100}" x2="100" y2="${100-(t/maxY)*100}" stroke="rgba(255,255,255,0.04)" stroke-width="0.5" />`).join('');
     svgGridLines += [15, 30, 45, 60, 75, 90].map(m => `<line x1="${(m/maxMin)*100}" y1="0" x2="${(m/maxMin)*100}" y2="100" stroke="rgba(255,255,255,0.03)" stroke-width="0.5" stroke-dasharray="2 2" />`).join('');
 
-  
-    const goalMarkersHTML = MATCH_GLOBAL_DATA.shotmap.filter(s => s.eventType === "Goal").map(g => {
+    // 3. Filtrer og opbyg mål-flueben (Kun for mål scoret i FirstHalf/SecondHalf)
+    const goalMarkersHTML = validShots.filter(s => s.eventType === "Goal").map(g => {
         const isHome = (!!g.isOwnGoal ? (g.teamId != info.homeId) : (g.teamId == info.homeId));
         const cumulative = (isHome ? hShots : aShots).filter(s => s.min <= g.min).reduce((sum,s)=>sum+s.expectedGoals, 0);
 
+        // Hvis tillægstid skubber et skud over 90, låser vi den visuelt til kanten af x-aksen (99%)
+        const xPosPct = Math.min(99, (g.min / maxMin) * 100);
+
         return `
-            <div style="position:absolute; left:${(g.min/maxMin)*100}%; top:${100-(cumulative/maxY)*100}%; transform:translate(-50%, -50%); z-index:10; width:16px; height:16px; background:#47B745; border:1.5px solid #ffffff; border-radius:50%; box-shadow:0 2px 6px rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;">
+            <div style="position:absolute; left:${xPosPct}%; top:${100-(cumulative/maxY)*100}%; transform:translate(-50%, -50%); z-index:10; width:16px; height:16px; background:#47B745; border:1.5px solid #ffffff; border-radius:50%; box-shadow:0 2px 6px rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;">
                 <!-- Super clean hvidt vektor-flueben på den grønne baggrund -->
                 <svg viewBox="0 0 24 24" style="width:9px; height:9px; fill:none; stroke:#ffffff; stroke-width:4; stroke-linecap:round; stroke-linejoin:round;">
                     <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
             </div>`;
     }).join('');
+
 
 
     // 4. Split måltallene til top-headeren
@@ -590,7 +690,7 @@ function buildFig2AccumulatedXG() {
                 
                 <div style="text-align:right; padding-top:4px;">
                     <h2 style="font-size:15px; font-weight:900; color:#fff; letter-spacing:1.2px; margin:0; text-transform:uppercase;">Accumulated xG</h2>
-                    <span style="font-size:9px; font-weight:800; color:rgba(255,255,255,0.25); letter-spacing:1px;">VIA PER-90.STREAMLIT.APP</span>
+                    <span style="font-size:9px; font-weight:800; color:rgba(255,255,255,0.25); letter-spacing:1px;">VIA PER90.VERCEL.APP</span>
                 </div>
             </div>
 
@@ -629,11 +729,7 @@ function buildFig2AccumulatedXG() {
 
 
 // ==========================================================================
-// PER 90 - MATCHREPORT.JS - DEL 8 AF 10 (FIG 3 – GAME STATE / MOMENTUM)
-// ==========================================================================
-
-// ==========================================================================
-// PER 90 - MATCHREPORT.JS - DEL 8 AF 10 (FIG 3 – GAME STATE & MOMENTUM)
+// PER 90 - MATCHREPORT.JS - DEL 8 AF 10 (FIG 3 – GAME STATE & MOMENTUM) - FIXET TIL PC-DOWNLOAD
 // ==========================================================================
 function buildFig3GameState() {
     const container = getMatchReportEl("mr-display-target-area");
@@ -658,101 +754,113 @@ function buildFig3GameState() {
         return { minute: m.minute, value: avg };
     });
 
-    // Generer SVG-stier for over- og undersiden af midterlinjen (Y=50)
-    let hPoints = ["M 0,50"];
-    let aPoints = ["M 0,50"];
+    // Generer SVG-stier for over- og undersiden af midterlinjen (Y=50 i graf-koordinater)
+    // Bemærk: Vi forskyder graf-området ind i et beskyttet koordinatsystem (X går fra 110 til 620, Y går fra 110 til 460)
+    const graphLeft = 110;
+    const graphWidth = 510; // 620 - 110
+    const graphTop = 110;
+    const graphHeight = 350;
+    const graphMidY = graphTop + (graphHeight / 2); // 285
+
+    let hPoints = [`M ${graphLeft},${graphMidY}`];
+    let aPoints = [`M ${graphLeft},${graphMidY}`];
     
     smoothedPoints.forEach(p => {
-        const x = (p.minute / maxMin) * 100;
-        const y = 50 - (p.value / 100) * 42; // Skalerer momentum-værdien ind på aksen
-        hPoints.push(`L ${x.toFixed(2)},${y <= 50 ? y.toFixed(2) : 50}`);
-        aPoints.push(`L ${x.toFixed(2)},${y >= 50 ? y.toFixed(2) : 50}`);
+        const pctX = p.minute / maxMin;
+        const x = graphLeft + (pctX * graphWidth);
+        
+        // p.value går fra -100 til +100. Positiv er Hjemmehold (opad), Negativ er Udehold (nedad)
+        const valPct = p.value / 100;
+        const y = graphMidY - (valPct * (graphHeight / 2) * 0.84); // matcher dine oprindelige 42% skalering
+        
+        hPoints.push(`L ${x.toFixed(2)},${y <= graphMidY ? y.toFixed(2) : graphMidY}`);
+        aPoints.push(`L ${x.toFixed(2)},${y >= graphMidY ? y.toFixed(2) : graphMidY}`);
     });
     
-    hPoints.push("L 100,50 Z");
-    aPoints.push("L 100,50 Z");
+    hPoints.push(`L ${graphLeft + graphWidth},${graphMidY} Z`);
+    aPoints.push(`L ${graphLeft + graphWidth},${graphMidY} Z`);
 
-    // 2. Byg dæmpede gridlines med fulde, urokkelige HTML-attributter (Sikrer html2canvas kompabilitet)
-    let svgGridLines = [0, 50, 100].map(y => `
-        <line x1="0" y1="${y}" x2="100" y2="${y}" stroke="rgba(255,255,255,${y === 50 ? '0.15' : '0.04'})" stroke-width="${y === 50 ? '0.8' : '0.5'}" />
-    `).join('');
+    // 2. Byg gridlines (Vandrette: top, midt, bund + Lodrette tidslinjer)
+    let svgGridLines = [graphTop, graphMidY, graphTop + graphHeight].map((y, idx) => {
+        const opacity = idx === 1 ? '0.15' : '0.04';
+        const width = idx === 1 ? '0.8' : '0.5';
+        return `<line x1="${graphLeft}" y1="${y}" x2="${graphLeft + graphWidth}" y2="${y}" stroke="rgba(255,255,255,${opacity})" stroke-width="${width}" />`;
+    }).join('');
     
     const timeMinutes = [15, 30, 45, 60, 75, 90];
-    svgGridLines += timeMinutes.map(m => `
-        <line x1="${(m/maxMin)*100}" y1="0" x2="${(m/maxMin)*100}" y2="100" stroke="rgba(255,255,255,0.03)" stroke-width="0.5" stroke-dasharray="2,2" />
-    `).join('');
+    svgGridLines += timeMinutes.map(m => {
+        const x = graphLeft + ((m / maxMin) * graphWidth);
+        return `<line x1="${x}" y1="${graphTop}" x2="${x}" y2="${graphTop + graphHeight}" stroke="rgba(255,255,255,0.075)" stroke-width="0.5" stroke-dasharray="2,2" />`;
+    }).join('');
 
     // 3. Split scoringstallene til topbar
     const [homeGoals, awayGoals] = (info.scoreStr || "0 - 0").split('-').map(s => s.trim());
 
-    // 4. Render det samlede layout
+    // 4. Render det samlede, integrerede SVG-layout (Alt ligger inde i én stor, urokkelig SVG-beholder)
     container.innerHTML = `
-        <div class="mr-capture-card" id="fig3-capture" style="padding: 40px 30px;">
-            
-            <!-- TOPBAR -->
-            <div style="width:100%; display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:30px;">
-                <div style="display:flex; flex-direction:column; gap:12px; margin-left:110px;">
+        <div class="mr-capture-card" id="fig3-capture" style="padding: 35px 25px;">
+            <div style="width: 100%; height: 500px; display: block; overflow: visible;">
+                <svg width="100%" height="500" viewBox="0 0 630 500" style="overflow: visible; display: block;">
+                    
+
+
                     <!-- Hjemmehold Linje -->
-                    <div style="display:flex; align-items:center; gap:12px; line-height:1;">
-                        <img src="${info.homeLogoB64}" style="width:24px; height:24px; object-fit:contain; flex-shrink:0; display:block;">
-                        <span style="font-size:24px; font-weight:950; color:#fff; width:20px; text-align:center; display:inline-block; line-height:1;">${homeGoals}</span>
-                        <span style="font-size:18px; font-weight:900; color:${homeColor}; text-transform:uppercase; letter-spacing:0.3px; display:inline-block; line-height:1;">${info.homeName}</span>
-                    </div>
+                    <image x="110" y="5" width="24" height="24" href="${info.homeLogoB64}" />
+                    <!-- Låst på 156 (præcis 22px fra logoets kant) -->
+                    <text x="156" y="17" fill="#ffffff" font-family="sans-serif" font-size="24" font-weight="950" text-anchor="middle" dominant-baseline="central">${homeGoals}</text>
+                    <!-- Låst på 178 (præcis 22px fra målcifrets midterakse) -->
+                    <text x="178" y="17" fill="${homeColor}" font-family="sans-serif" font-size="18" font-weight="900" text-anchor="start" dominant-baseline="central">${info.homeName.toUpperCase()}</text>
+                    
                     <!-- Udehold Linje -->
-                    <div style="display:flex; align-items:center; gap:12px; line-height:1;">
-                        <img src="${info.awayLogoB64}" style="width:24px; height:24px; object-fit:contain; flex-shrink:0; display:block;">
-                        <span style="font-size:24px; font-weight:950; color:#fff; width:20px; text-align:center; display:inline-block; line-height:1;">${awayGoals}</span>
-                        <span style="font-size:18px; font-weight:900; color:${awayColor}; text-transform:uppercase; letter-spacing:0.3px; display:inline-block; line-height:1;">${info.awayName}</span>
-                    </div>
-                </div>
-                
-                <div style="text-align:right; padding-top:4px;">
-                    <h2 style="font-size:15px; font-weight:900; color:#fff; letter-spacing:1.2px; margin:0; text-transform:uppercase;">Game State</h2>
-                    <span style="font-size:9px; font-weight:800; color:rgba(255,255,255,0.25); letter-spacing:1px;">VIA PER-90.STREAMLIT.APP</span>
-                </div>
-            </div>
+                    <image x="110" y="37" width="24" height="24" href="${info.awayLogoB64}" />
+                    <!-- Låst på 156 (præcis 22px fra logoets kant) -->
+                    <text x="156" y="49" fill="#ffffff" font-family="sans-serif" font-size="24" font-weight="950" text-anchor="middle" dominant-baseline="central">${awayGoals}</text>
+                    <!-- Låst på 178 (præcis 22px fra målcifrets midterakse) -->
+                    <text x="178" y="49" fill="${awayColor}" font-family="sans-serif" font-size="18" font-weight="900" text-anchor="start" dominant-baseline="central">${info.awayName.toUpperCase()}</text>
 
-            <!-- GRAF FRAME MED DE RIGTIGE TEKST-Y-AKSER -->
-            <div class="mr-graph-frame" style="height:350px;">
-                <!-- Venstre Y-akse tekstlabels -->
-    
-                <div class="mr-y-axis" style="width:110px; height:100%; position:relative;">
-                    <span style="position:absolute; top:0%; right:15px; font-size:10px; font-weight:900; color:${homeColor}; text-transform:uppercase; letter-spacing:0.5px; transform:translateY(-50%);">Dominance (H)</span>
-                    <span style="position:absolute; top:50%; right:15px; font-size:10px; font-weight:800; color:#475569; text-transform:uppercase; letter-spacing:0.5px; transform:translateY(-50%);">Balanced</span>
-                    <span style="position:absolute; top:100%; right:15px; font-size:10px; font-weight:900; color:${awayColor}; text-transform:uppercase; letter-spacing:0.5px; transform:translateY(-50%);">Dominance (A)</span>
-                </div>
+                    
+                    <!-- Højrestillet Overskrift -->
+                    <text x="620" y="17" fill="#ffffff" font-family="sans-serif" font-size="15" font-weight="900" text-anchor="end" dominant-baseline="central">GAME STATE</text>
+                    <text x="620" y="34" fill="rgba(255,255,255,0.25)" font-family="sans-serif" font-size="9" font-weight="800" letter-spacing="1" text-anchor="end" dominant-baseline="central">VIA PER90.VERCEL.APP</text>
 
-                
-                <!-- SVG Canvas med de rettede attributter for download-motoren -->
-                <div class="mr-svg-canvas" style="border-bottom:1px solid rgba(255,255,255,0.1); border-left:1px solid rgba(255,255,255,0.1);">
-                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%; height:100%;">
-                        <!-- Baggrunds-gridlines -->
-                        ${svgGridLines}
-                        
-                        <!-- Farve-flader (Fill) med indbygget tyk kantlinie -->
-                        <path d="${hPoints.join(' ')}" fill="${homeColor}" fill-opacity="0.12" stroke="${homeColor}" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" />
-                        <path d="${aPoints.join(' ')}" fill="${awayColor}" fill-opacity="0.12" stroke="${awayColor}" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" />
-                        
-                        <!-- Slanke/ekstra momentum-linjer til at dække samlingerne helt perfekt -->
-                        <path d="${hPoints.join(' ')}" fill="none" stroke="${homeColor}" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" />
-                        <path d="${aPoints.join(' ')}" fill="none" stroke="${awayColor}" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" />
+                    <!-- ========================================================
+                         🎯 Y-AKSE TEKSTLABELS (Venstre side)
+                         ======================================================== -->
+                    <text x="95" y="${graphTop}" fill="${homeColor}" font-family="sans-serif" font-size="10" font-weight="900" letter-spacing="0.5" text-anchor="end" dominant-baseline="central">DOMINANCE (H)</text>
+                    <text x="95" y="${graphMidY}" fill="#475569" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.5" text-anchor="end" dominant-baseline="central">BALANCED</text>
+                    <text x="95" y="${graphTop + graphHeight}" fill="${awayColor}" font-family="sans-serif" font-size="10" font-weight="900" letter-spacing="0.5" text-anchor="end" dominant-baseline="central">DOMINANCE (A)</text>
 
-                    </svg>
-                </div>
-            </div>
+                    <!-- ========================================================
+                         🎯 GRAFENS INDHOLD (Arealer, Gridlines & Akser)
+                         ======================================================== -->
+                    <!-- Ramme omkring selve graf-området -->
+                    <line x1="${graphLeft}" y1="${graphTop}" x2="${graphLeft}" y2="${graphTop + graphHeight}" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
+                    <line x1="${graphLeft}" y1="${graphTop + graphHeight}" x2="${graphLeft + graphWidth}" y2="${graphTop + graphHeight}" stroke="rgba(255,255,255,0.1)" stroke-width="1" />
 
-            <!-- X-AKSE TIDS-ETIKETTER -->
-            <div class="mr-x-row">
-                <div style="width:110px;"></div>
-                <div class="mr-x-axis" style="padding-top:10px; color:#475569; font-size:11px; font-weight:800;">
-                    <span>0'</span><span style="position:relative; left:-2%;">15'</span><span style="position:relative; left:-1%;">30'</span>
-                    <span>45'</span><span style="position:relative; left:1%;">60'</span><span style="position:relative; left:2%;">75'</span><span>90'</span>
-                </div>
+                    <!-- Baggrunds-gridlines -->
+                    ${svgGridLines}
+                    
+                    <!-- Farve-flader (Fill) med indbygget dæmpet gennemsigtighed -->
+                    <path d="${hPoints.join(' ')}" fill="${homeColor}" fill-opacity="0.12" stroke="${homeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="${aPoints.join(' ')}" fill="${awayColor}" fill-opacity="0.12" stroke="${awayColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+                    <!-- ========================================================
+                         🎯 X-AKSE TIDS-ETIKETTER (I bunden af grafen)
+                         ======================================================== -->
+                    <text x="${graphLeft}" y="${graphTop + graphHeight + 14}" fill="#475569" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle" dominant-baseline="central">0'</text>
+                    <text x="${graphLeft + (0.166 * graphWidth)}" y="${graphTop + graphHeight + 14}" fill="#475569" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle" dominant-baseline="central">15'</text>
+                    <text x="${graphLeft + (0.333 * graphWidth)}" y="${graphTop + graphHeight + 14}" fill="#475569" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle" dominant-baseline="central">30'</text>
+                    <text x="${graphLeft + (0.500 * graphWidth)}" y="${graphTop + graphHeight + 14}" fill="#475569" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle" dominant-baseline="central">45'</text>
+                    <text x="${graphLeft + (0.666 * graphWidth)}" y="${graphTop + graphHeight + 14}" fill="#475569" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle" dominant-baseline="central">60'</text>
+                    <text x="${graphLeft + (0.833 * graphWidth)}" y="${graphTop + graphHeight + 14}" fill="#475569" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle" dominant-baseline="central">75'</text>
+                    <text x="${graphLeft + graphWidth}" y="${graphTop + graphHeight + 14}" fill="#475569" font-family="sans-serif" font-size="11" font-weight="800" text-anchor="middle" dominant-baseline="central">90'</text>
+                </svg>
             </div>
         </div>
-        <div style="text-align:center; margin-top:20px;"><button class="mr-btn" style="margin:auto;" onclick="triggerMatchReportDownload('game_momentum', 'fig3-capture')">Download as PNG</button></div>
+        <div style="text-align:center; margin-top:20px;"><button class="mr-btn" style="margin:auto;" onclick="triggerMatchReportDownload('game_state', 'fig3-capture')">Download as PNG</button></div>
     `;
 }
+
 
 // ==========================================================================
 // PER 90 - MATCHREPORT.JS - FIG 4 (DEL A: DATABEHANDLING & HTML-MAPPING)
@@ -805,9 +913,10 @@ function buildFig4TopPerformers() {
                         ${idx + 1}
                     </span>
                     <img class="logo" src="${player.teamId == info.homeId ? info.homeLogoB64 : info.awayLogoB64 || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'}" style="width: 16px !important; height: 16px !important; object-fit: contain !important; flex-shrink: 0 !important; display: block !important; margin: 0 !important; padding: 0 !important; filter: drop-shadow(0 0 4px rgba(255,255,255,0.1)) !important;">
-                    <span class="p-nm" style="flex-grow: 1 !important; width: 0 !important; font-size: 11px !important; font-weight: ${is_1st ? '700' : '600'} !important; color: ${is_1st ? '#ffffff' : 'rgba(255,255,255,0.6)'} !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; display: inline-block !important; line-height: 1 !important; margin: 0 !important; padding: 0 !important;">
+                    <span class="p-nm" style="flex-grow: 1 !important; width: 0 !important; font-size: 11px !important; font-weight: ${is_1st ? '700' : '600'} !important; color: ${is_1st ? '#ffffff' : 'rgba(255,255,255,0.6)'} !important; letter-spacing: 0.5px !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; display: inline-block !important; line-height: 1 !important; margin: 0 !important; padding: 0 !important;">
                         ${formatShortName(player.name)}
                     </span>
+
 
                     <span class="p-vl" style="font-size: 11px !important; font-weight: ${is_1st ? '900' : '700'} !important; color: ${is_1st ? '#ff4d4d' : 'rgba(255,255,255,0.5)'} !important; text-shadow: ${is_1st ? '0 0 15px rgba(255, 77, 77, 0.4)' : 'none'} !important; text-align: right !important; margin-left: auto !important; font-variant-numeric: tabular-nums !important; display: inline-block !important; line-height: 1 !important; padding: 0 !important; flex-shrink: 0 !important; width: 35px !important;">
                         ${Number.isInteger(player.val) ? player.val : player.val.toFixed(2)}
@@ -837,7 +946,7 @@ function buildFig4TopPerformers() {
             </style>
             <div style="display:flex; flex-direction:column; align-items:flex-start; margin-bottom:40px; position:relative; z-index:2;">
                 <h1 style="font-size:30px; font-weight:900; text-transform:uppercase; margin:0; letter-spacing:2px; line-height:0.85; color:#ffffff;">Top <strong style="font-weight:900; letter-spacing:2px; color:#ff4d4d;">Performers</strong></h1>
-                <div style="font-size:9px; font-weight:700; color:#ff4d4d; letter-spacing:2px; margin-top:8px; text-transform:uppercase; padding-left:12px; border-left:2px solid #ff4d4d;">Generated via per-90.streamlit.app</div>
+                <div style="font-size:9px; font-weight:700; color:#ff4d4d; letter-spacing:2px; margin-top:8px; text-transform:uppercase; padding-left:12px; border-left:2px solid #ff4d4d;">Generated via per90.vercel.app</div>
             </div>
             
             <!-- 🔥 STRUKTUR FIX: Vi tvinger containeren til altid at bruge flex og fordele kolonnerne ensartet under download -->
@@ -924,9 +1033,9 @@ async function buildFig5PlayerStats() {
     }
 
     const groupsConfig = [
-        { title: "Expected Metrics", metrics: ['xG + xA', 'Expected goals (xG)', 'Expected assists (xA)', 'Expected goals on target (xGOT)'] },
-        { title: "Passing & Build-up", metrics: ['Big chances created', 'Chances created', 'Passes into final third', 'Accurate passes'] },
-        { title: "Possession & Dribbles", metrics: ['Successful dribbles', 'Touches in opposition box', 'Touches', 'Was fouled'] },
+        { title: "Expected Output", metrics: ['xG + xA', 'Expected goals (xG)', 'Expected assists (xA)', 'Expected goals on target (xGOT)'] },
+        { title: "Passing", metrics: ['Big chances created', 'Chances created', 'Passes into final third', 'Accurate passes'] },
+        { title: "Possession", metrics: ['Successful dribbles', 'Touches in opposition box', 'Touches', 'Was fouled'] },
         { title: "Defending & Duels", metrics: ['Defensive actions', 'Recoveries', 'Ground duels won', 'Aerial duels won'] }
     ];
 
@@ -945,16 +1054,12 @@ async function buildFig5PlayerStats() {
                 : parseFloat(p.stats?.[metric] || 0)
             );
 
+
             const max_val = Math.max(...allVals);
             const isDecimal = metric.includes('(x') || metric === 'xG + xA';
             const playerPosPct = max_val > 0 ? (current_val / max_val) * 100 : 0;
             const isHighestInMatch = current_val === max_val && max_val > 0;
             
-            let badgeHTML = "";
-            if (isHighestInMatch) {
-                badgeHTML = `<span style="font-size:8px; font-weight:900; background:${ratingColor}20; color:${ratingColor}; border: 1px solid ${ratingColor}35; padding:1.5px 5px; border-radius:3px; font-family:sans-serif; letter-spacing:0.5px; text-transform:uppercase; margin-left:6px; flex-shrink:0;">MOST</span>`;
-            }
-
             const valueCounts = {};
             allVals.forEach(v => {
                 const groupKey = isDecimal ? v.toFixed(2) : Math.round(v).toString();
@@ -980,33 +1085,74 @@ async function buildFig5PlayerStats() {
                 <div style="position: absolute; left: ${Math.min(98, Math.max(1, posPct))}%; top: 50%; width: ${dotSize}px; height: ${dotSize}px; background: rgba(255, 255, 255, ${densityOpacity}); border-radius: 50%; transform: translate(-50%, -50%); ${glowGlow}"></div>`;
             });
 
-            return `
-            <div style="display:flex; flex-direction:column; gap:2px; margin-bottom:12px;">
-                <div style="display:flex; align-items:center; width:100%; min-width:0;">
-                    <span style="font-size:12px; font-weight:900; color:${ratingColor}; font-variant-numeric:tabular-nums; flex-shrink:0; width:34px; text-align:left;">
-                        ${isDecimal ? current_val.toFixed(2) : Math.round(current_val)}
-                    </span>
-                    <span style="font-size:11px; color:rgba(255,255,255,0.7); font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70%;">
-                        ${metric}
-                    </span>
-                    ${badgeHTML}
-                </div>
-                
-                <div style="width:100%; height:14px; position:relative; margin-bottom:2px; display:flex; align-items:center; box-sizing:border-box; overflow:visible;">
-                    <div style="width:100%; height:1px; background:rgba(255,255,255,0.12); position:relative; overflow:visible;">
-                        ${circles_html}
-                        <div style="position: absolute; left: ${Math.min(99, Math.max(1, playerPosPct))}%; top: 50%; transform: translate(-50%, -50%); width: 11px; height: 11px; background: ${ratingColor}; border: 1.8px solid #ffffff; border-radius: 50%; box-shadow: 0 0 14px ${ratingColor}, 0 0 4px ${ratingColor}; z-index: 15;"></div>
+
+          return `
+              <div style="display:block; width:100%; margin-bottom:14px; box-sizing:border-box; overflow:visible;">
+                  
+                  <!-- OPDATER DETTE DISKRETE DIV-TAG SÅDET SER SÅLEDES UD: -->
+                  <div style="display: flex; align-items: center; gap: 8px; padding: 0; margin: 0 0 4px 0; line-height: 1; box-sizing: border-box; width: 100%;">
+                      <!-- 📊 Metric værdi -->
+                      <span style="color: ${ratingColor}; font-family: sans-serif; font-size: 12px; font-weight: 900; font-variant-numeric: tabular-nums; margin: 0; padding: 0; display: inline-block;">
+                          ${isDecimal ? current_val.toFixed(2) : Math.round(current_val)}
+                      </span>
+                      
+                      <!-- 🏷️ Metric navn -->
+                      <span style="color: rgba(255,255,255,0.7); font-family: sans-serif; font-size: 11px; font-weight: 700; margin: 0; padding: 0;">
+                          ${metric}
+                      </span>
+
+                    
+                    <!-- 🎯 'MOST' BADGE: SVG-tricket der sikrer perfekt centrering live og ved download -->
+                    ${isHighestInMatch && max_val > 0 ? `
+                    <div style="display: inline-block; vertical-align: middle; margin-left: 2px; width: 38px; height: 14px; box-sizing: border-box; overflow: visible;">
+                        <svg width="38" height="14" viewBox="0 0 38 14" style="display: block; overflow: visible;">
+                            <rect x="0.5" y="0.5" width="37" height="13" rx="3" fill="${ratingColor}20" stroke="${ratingColor}35" stroke-width="1" />
+                            <text x="19" y="7.5" fill="${ratingColor}" font-family="sans-serif" font-size="8" font-weight="900" letter-spacing="0.5" text-anchor="middle" dominant-baseline="central">MOST</text>
+                        </svg>
                     </div>
+                    ` : ''}
+                </div>
+
+  
+               
+                <div style="width:100%; height: 14px; position: relative; margin-top: 2px; overflow: visible;">
+                    <svg width="100%" height="14" viewBox="0 0 320 14" style="overflow:visible; display:block;" preserveAspectRatio="none">
+                        <!-- Baggrundsstreg: Rykket ind til X=6 for at give plads til prikkernes radius i enderne -->
+                        <line x1="6" y1="7" x2="314" y2="7" stroke="rgba(255,255,255,0.12)" stroke-width="1" />
+                        
+                        <!-- De andre spilleres prikker indlagt via HTML-strengen -->
+                        <foreignObject x="0" y="0" width="320" height="14" style="overflow:visible; pointer-events:none;">
+                            <div style="position:relative; width:100%; height:100%;">
+                                ${circles_html}
+                            </div>
+                        </foreignObject>
+                        
+                        <!-- 🎯 Den aktive spillers markør-prik: Skaleret ind på den nye 6px til 314px akse -->
+                        <circle cx="${6 + (Math.min(100, Math.max(0, playerPosPct)) / 100) * 308}" cy="7" r="4.5" fill="${ratingColor}" stroke="#ffffff" stroke-width="1.4" style="filter: drop-shadow(0 0 4px ${ratingColor});" />
+                    </svg>
                 </div>
             </div>`;
         }).join('');
 
+
         return `
         <div style="background:rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.03); border-radius:12px; padding:12px; min-width:0;">
-            <div style="font-size:10px; font-weight:900; color:${ratingColor}; letter-spacing:1px; margin-bottom:12px; text-transform:uppercase; border-left:2.5px solid ${ratingColor}; padding-left:8px; line-height:1;">${group.title}</div>
+            
+            <!-- 🎯 TITEL-SVG TRICK: Sikrer urokkelig streg og tekst-centrering live og ved download -->
+            <div style="width: 100%; height: 14px; margin-bottom: 12px; overflow: visible; display: block;">
+                <svg width="100%" height="14" viewBox="0 0 200 14" style="display: block; overflow: visible;" preserveAspectRatio="xMinYMid meet">
+                    <!-- Den tykke, lysende indikator-streg i venstre side -->
+                    <line x1="1.25" y1="1" x2="1.25" y2="13" stroke="${ratingColor}" stroke-width="2.5" stroke-linecap="round" />
+                    <!-- Kategori-teksten låst præcis 8px fra stregen -->
+                    <text x="9" y="7.5" fill="${ratingColor}" font-family="sans-serif" font-size="10" font-weight="900" letter-spacing="1px" text-anchor="start" dominant-baseline="central">${group.title.toUpperCase()}</text>
+                </svg>
+            </div>
+            
             ${metrics_inner}
         </div>`;
+
     }).join('');
+
     const playerOptionsHTML = [...players]
         .sort((a, b) => parseFloat(b.stats?.["FotMob rating"] || 0) - parseFloat(a.stats?.["FotMob rating"] || 0))
         .map(p => `<option value="${p.playerId}" ${p.playerId == MATCH_SELECTED_PLAYER ? 'selected' : ''}>${p.playerName} (${parseFloat(p.stats?.["FotMob rating"] || 0).toFixed(1)})</option>`)
@@ -1024,9 +1170,17 @@ async function buildFig5PlayerStats() {
             <div style="width:100%; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:16px; padding:16px; display:flex; gap:20px; align-items:center; margin-bottom:20px; box-sizing:border-box;">
                 
                 <div style="position:relative; flex-shrink:0;">
-                    <div style="position:absolute; top:-6px; left:-8px; background:${ratingColor}; color:#000; font-weight:900; border-radius:6px; font-size:11px; height:18px; padding:2px 5px 0 5px; text-align:center; box-shadow:0 3px 6px rgba(0,0,0,0.4); line-height:14px; z-index:3;">
-                        ${rating.toFixed(1)}
+
+                    <div style="position:absolute; top:-6px; left:-8px; width:24px; height:18px; z-index:3; filter: drop-shadow(0px 3px 4px rgba(0,0,0,0.4));">
+                        <svg width="24" height="18" viewBox="0 0 24 18" style="display:block;">
+                            <rect width="24" height="18" rx="5" fill="${ratingColor}" />
+                            <text x="12" y="9.5" fill="#000000" font-family="sans-serif" font-size="11" font-weight="900" text-anchor="middle" dominant-baseline="central">
+                                ${rating.toFixed(1)}
+                            </text>
+                        </svg>
                     </div>
+
+
                     
                     <div style="position:absolute; top:-6px; right:-8px; background:rgba(15, 23, 42, 0.95); border:1px solid rgba(255,255,255,0.2); border-radius:6px; width:18px; height:18px; display:flex; align-items:center; justify-content:center; padding:1.5px; box-shadow:0 3px 6px rgba(0,0,0,0.5); z-index:3; box-sizing:border-box; overflow:hidden;">
                         <img src="${playerTeamLogoB64}" style="max-width:100%; max-height:100%; object-fit:contain;">
@@ -1046,7 +1200,7 @@ async function buildFig5PlayerStats() {
                     
                     <div style="display:flex; align-items:center; gap:8px; font-size:10px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase;">
                         <span>VS. ${opponentTeamName}</span>
-                        <span>•</span>
+                        <span>|</span>
                         <span>${Math.round(current.stats?.["Minutes played"] || 90)} Mins Played</span>
                     </div>
                 </div>
@@ -1062,24 +1216,283 @@ async function buildFig5PlayerStats() {
                 <!-- Venstrestillede Legends -->
                 <div style="display:flex; gap:24px; font-size:10px; color:rgba(255,255,255,0.4); font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">
                     <div style="display:flex; align-items:center; gap:6px;"><div style="width:8px; height:8px; background:${ratingColor}; border:1.5px solid #fff; border-radius:50%; box-shadow:0 0 4px ${ratingColor};"></div><span>Selected Player</span></div>
-                    <div style="display:flex; align-items:center; gap:6px;"><div style="width:6px; height:6px; background:rgba(255,255,255,0.35); border-radius:50%;"></div><span>Squad Spreading</span></div>
+                    <div style="display:flex; align-items:center; gap:6px;"><div style="width:6px; height:6px; background:rgba(255,255,255,0.35); border-radius:50%;"></div><span>Other Players</span></div>
                 </div>
 
                 <!-- Højrestillet Ny Streamlit Footer -->
                 <div style="font-size:9px; font-weight:800; color:rgba(255,255,255,0.25); letter-spacing:1px; text-transform:uppercase;">
-                    GENERATED VIA PER-90.STREAMLIT.APP
+                    GENERATED VIA PER90.VERCEL.APP
                 </div>
             </div>
         </div>
 
         <div style="text-align:center; margin-top:20px;">
-            <button class="mr-btn" style="margin:auto;" onclick="triggerMatchReportDownload('${current.playerName.replace(/\s+/g,'_')}_refined_swarm_chart', 'fig5-capture')">
+            <button class="mr-btn" style="margin:auto;" onclick="triggerMatchReportDownload('${current.playerName.replace(/\s+/g,'_')}_stats', 'fig5-capture')">
                 Download as PNG
             </button>
         </div>
     `;
 }
 
+// ==========================================================================
+// PER 90 - MATCHREPORT.JS - FIG 7 – VERTICAL SHOTMAP (DEL A: MATEMATIK & DATA)
+// ==========================================================================
+function buildFig7Shotmap() {
+    const container = getMatchReportEl("mr-display-target-area");
+    if (!container) return;
+
+    const info = MATCH_GLOBAL_DATA.match_info;
+    const activeTeam = MATCH_SHOTMAP_TEAM; // 'home' eller 'away'
+    const targetTeamId = activeTeam === "home" ? info.homeId : info.awayId;
+    const teamColor = activeTeam === "home" ? info.homeColor : info.awayColor;
+
+    // Definer hvem der er det aktive hold, og hvem der er modstanderen
+    const activeTeamName = activeTeam === "home" ? info.homeName : info.awayName;
+    const opponentTeamName = activeTeam === "home" ? info.awayName : info.homeName;
+
+    // Filter: Vis KUN skud for det valgte hold (selvmål udelukkes fuldstændigt)
+    const filteredShots = MATCH_GLOBAL_DATA.shotmap.filter(shot => 
+        shot.teamId == targetTeamId && !shot.isOwnGoal
+    );
+
+    // 📊 STATS BEREGNING (Maksimalt 2 decimaler og fraregnet selvmål)
+    const totalShots = filteredShots.length;
+    const totalXG = filteredShots.reduce((sum, shot) => sum + (shot.expectedGoals || 0), 0);
+    const totalXGOT = filteredShots.reduce((sum, shot) => sum + (shot.expectedGoalsOnTarget || 0), 0);
+    const xgPerShot = totalShots > 0 ? (totalXG / totalShots) : 0;
+
+    // Map skuddata om til det nye vertikale og halverede koordinatsystem
+    const shotsHTML = filteredShots.map(shot => {
+        // 1. Vandret placering (X-procent): Vi spejler y-aksen fuldstændigt (68 - y)
+        const finalX = ((68 - shot.y) / 68) * 100;
+        
+        // 2. Lodret placering (Y-procent): Vi spejler x-aksen fuldstændigt (105 - x) divideret med 52.5
+        const finalY = ((105 - shot.x) / 52.5) * 100;
+
+        const clampedX = Math.max(1, Math.min(99, finalX));
+        const clampedY = Math.max(1, Math.min(99, finalY));
+
+        let baseColor = "200, 41, 41"; // Standard: Off Target (Rød)
+        if (shot.eventType === "Goal") {
+            baseColor = "71, 183, 69"; // Mål (Grøn)
+        } else if (shot.expectedGoalsOnTarget > 0) {
+            baseColor = "200, 195, 41"; // Inden for rammen (Gul)
+        }
+
+        const size = Math.max(12, Math.min(48, Math.sqrt(shot.expectedGoals) * 30));
+
+        const tooltipData = JSON.stringify({
+            name: shot.playerName || "Ukendt Spiller",
+            min: shot.minAdded ? `${shot.min}+${shot.minAdded}` : shot.min,
+            period: shot.period === "FirstHalf" ? "1st Half" : shot.period === "SecondHalf" ? "2nd Half" : shot.period,
+            xg: shot.expectedGoals ? shot.expectedGoals.toFixed(2) : "0.00",
+            xgot: shot.expectedGoalsOnTarget ? shot.expectedGoalsOnTarget.toFixed(2) : "0.00",
+            type: shot.shotType || "Normal",
+            situation: shot.situation || "Regular Play"
+        }).replace(/"/g, '&quot;');
+
+        return `<div class="mr-shot-dot-interactive" 
+                     data-tooltip="${tooltipData}"
+                     onmouseover="showShotmapTooltip(event, this)"
+                     onmouseout="hideShotmapTooltip()"
+                     style="
+                        left: ${clampedX.toFixed(2)}%; 
+                        top: ${clampedY.toFixed(2)}%; 
+                        width: ${size}px; 
+                        height: ${size}px; 
+                        background: rgba(${baseColor}, 0.2); 
+                        border: 1.5px solid rgba(${baseColor}, 1); 
+                        box-shadow: 0 0 6px rgba(${baseColor}, 0.8), inset 0 0 4px rgba(${baseColor}, 0.4);
+                     "></div>`;
+    }).join('');
+
+    // ==========================================================================
+    // PER 90 - MATCHREPORT.JS - FIG 7 – VERTICAL SHOTMAP (MED APOSTROF PÅ BADGE)
+    // ==========================================================================
+    container.innerHTML = `
+        <div style="width:100%; max-width:600px; margin:0 auto 20px auto; display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03); padding:10px 15px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
+            <span style="font-size:11px; font-weight:800; color:rgba(255,255,255,0.5); text-transform:uppercase;">Select Team:</span>
+            <select id="mr-shotmap-dropdown" onchange="MATCH_SHOTMAP_TEAM=this.value; buildFig7Shotmap();" style="flex:1; background:#0B1220; color:#fff; border:1px solid rgba(255,255,255,0.1); padding:6px 10px; border-radius:6px; font-weight:700; font-size:13px; outline:none; cursor:pointer;">
+                <option value="home" ${activeTeam === 'home' ? 'selected' : ''}>${info.homeName} (Home)</option>
+                <option value="away" ${activeTeam === 'away' ? 'selected' : ''}>${info.awayName} (Away)</option>
+            </select>
+        </div>
+    
+        <div class="mr-capture-card" id="fig7-capture" style="padding: 40px 30px;">
+
+            <div style="display:flex; flex-direction:column; align-items:center; width:100%; padding:0 24px 5px 24px; text-align:center; box-sizing:border-box;">
+                
+                <h2 style="font-size:20px; font-weight:900; text-transform:uppercase; color:#ffffff; margin:0 0 20px 0; letter-spacing:0.5px; line-height:1.3; display:inline-flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap;">
+                    <span style="background: ${teamColor}; color: ${(() => {
+                        const cleanHex = teamColor.replace("#", "");
+                        if (cleanHex.length !== 6) return "#ffffff";
+                        const r = parseInt(cleanHex.substr(0, 2), 16);
+                        const g = parseInt(cleanHex.substr(2, 2), 16);
+                        const b = parseInt(cleanHex.substr(4, 2), 16);
+                        const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+                        return (yiq >= 170) ? "#070a13" : "#ffffff";
+                    })()}; padding: 4px 12px; border-radius: 8px; box-shadow: 0 4px 15px ${teamColor}33; letter-spacing: 0px;">
+                        ${activeTeamName}'S
+                    </span>
+                    <span style="font-weight:400; opacity:0.8; font-size:18px; padding:0 2px;"> SHOTS VS. </span>
+                    <span style="font-weight:700; opacity:0.8; font-size:18px;">${opponentTeamName}</span>
+                </h2>
+                
+                <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom: 10px;">
+                    <div style="width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; padding:5px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                        <img src="${info.homeLogoB64}" style="max-width:100%; max-height:100%; object-fit:contain;">
+                    </div>
+                    <div style="font-size:15px; font-weight:900; color:#ffffff; letter-spacing:0.5px; background:rgba(255,255,255,0.04); padding:4px 12px; border-radius:6px; border:1px solid rgba(255,255,255,0.03); font-variant-numeric: tabular-nums;">
+                        ${info.scoreStr || "0 - 0"}
+                    </div>
+                    <div style="width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center; padding:5px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                        <img src="${info.awayLogoB64}" style="max-width:100%; max-height:100%; object-fit:contain;">
+                    </div>
+                </div>
+
+                <!-- Signaturen er flyttet herop under score og logoer -->
+                <div style="font-size: 9px; font-weight: 800; color: rgba(255,255,255,0.25); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px;">
+                    VIA PER90.VERCEL.APP
+                </div>
+            </div>
+
+            
+            <div class="mr-pitch-wrapper" id="shotmap-pitch-context" style="max-width: 460px; aspect-ratio: 68 / 52.5; margin: 0 auto 10px auto;">
+                <!-- [Banegeometri og resten af funktionen forbliver uændret herfra...] -->
+
+                <svg viewBox="0 0 68 52.5" style="width:100%; height:100%; display:block;">
+                    <rect x="0" y="0" width="68" height="52.5" class="mr-pitch-line" />
+                    <line x1="0" y1="52.5" x2="68" y2="52.5" class="mr-pitch-line" style="stroke-width: 1.2;" />
+                    <path d="M 24.85,52.5 A 9.15,9.15 0 0,1 43.15,52.5" class="mr-pitch-line" />
+                    
+                    <rect x="24.85" y="0" width="18.3" height="5.5" class="mr-pitch-line" />
+                    <rect x="13.85" y="0" width="40.3" height="16.5" class="mr-pitch-line" />
+                    <path d="M 27.5,16.5 A 9.15,9.15 0 0,0 40.5,16.5" class="mr-pitch-line" />
+                </svg>
+
+                <div class="mr-markers-layer" style="pointer-events: auto !important;">${shotsHTML}</div>
+                
+                <!-- 🎯 STATS-OVERLAY PANEL (Rene, hvide tal på alle fire positioner) -->
+                <div style="position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); width: 90%; background: rgba(11, 18, 32, 0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 14px; display: flex; justify-content: space-around; align-items: center; backdrop-filter: blur(2px); box-sizing: border-box; z-index: 20; pointer-events: none;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 15px; font-weight: 900; color: #ffffff; font-variant-numeric: tabular-nums;">${totalShots}</div>
+                        <div style="font-size: 8px; font-weight: 800; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Shots</div>
+                    </div>
+                    <div style="width: 1px; height: 22px; background: rgba(255,255,255,0.08); opacity: 0.5;"></div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 15px; font-weight: 900; color: #ffffff; font-variant-numeric: tabular-nums;">${totalXG.toFixed(2)}</div>
+                        <div style="font-size: 8px; font-weight: 800; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Total xG</div>
+                    </div>
+                    <div style="width: 1px; height: 22px; background: rgba(255,255,255,0.08); opacity: 0.5;"></div>
+                    <div style="text-align: center;">
+                        <!-- 🔥 RETTET: Gul farve fjernet, nu ren hvid -->
+                        <div style="font-size: 15px; font-weight: 900; color: #ffffff; font-variant-numeric: tabular-nums;">${totalXGOT.toFixed(2)}</div>
+                        <div style="font-size: 8px; font-weight: 800; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Total xGOT</div>
+                    </div>
+                    <div style="width: 1px; height: 22px; background: rgba(255,255,255,0.08); opacity: 0.5;"></div>
+                    <div style="text-align: center;">
+                        <!-- 🔥 RETTET: Blå farve fjernet, nu ren hvid -->
+                        <div style="font-size: 15px; font-weight: 900; color: #ffffff; font-variant-numeric: tabular-nums;">${xgPerShot.toFixed(2)}</div>
+                        <div style="font-size: 8px; font-weight: 800; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">xG per Shot</div>
+                    </div>
+                </div>
+
+                <div id="mr-shotmap-hover-tooltip" class="mr-shot-tooltip"></div>
+            </div>
+
+            <div style="width:100%; max-width:660px; height:20px; margin-top:25px; display:block; overflow:visible; box-sizing:border-box;">
+                <svg width="100%" height="20" viewBox="0 0 660 20" style="overflow:visible; display:block;">
+                    
+                    <!-- SKUD KATEGORIER (Flyttet længere mod højre/midten) -->
+                    <circle cx="75" cy="10" r="4" fill="#47B745" />
+                    <text x="85" y="10.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">GOAL</text>
+                    
+                    <circle cx="135" cy="10" r="4" fill="#C8C329" />
+                    <text x="145" y="10.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">ON TARGET</text>
+                    
+                    <circle cx="220" cy="10" r="4" fill="#C82929" />
+                    <text x="230" y="10.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">OFF TARGET</text>
+                    
+                    <!-- xG STØRRELSER (Flyttet længere mod venstre/midten) -->
+                    <text x="400" y="10.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">LOW XG</text>
+                    <circle cx="454" cy="10" r="2" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1" />
+                    <circle cx="472" cy="10" r="5" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1" />
+                    <circle cx="494" cy="10" r="8" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1" />
+                    <text x="512" y="10.5" fill="rgba(255,255,255,0.5)" font-family="sans-serif" font-size="10" font-weight="800" letter-spacing="0.8" text-anchor="start" dominant-baseline="central">HIGH XG</text>          
+                </svg>
+            </div>
+
+        </div>
+        <div style="text-align:center; margin-top:20px;">
+            <button class="mr-btn" style="margin:auto;" onclick="triggerMatchReportDownload('${activeTeam}_shotmap', 'fig7-capture')">Download as PNG</button>
+        </div>
+    `;
+}
+
+
+
+// ==========================================================================
+// PER 90 - MATCHREPORT.JS - FIG 7 – VERTICAL SHOTMAP (NYT TIDSFORMAT MED APOS)
+// ==========================================================================
+function showShotmapTooltip(event, element) {
+    const tooltip = getMatchReportEl("mr-shotmap-hover-tooltip");
+    if (!tooltip) return;
+
+    const data = JSON.parse(element.getAttribute("data-tooltip"));
+    
+    // Deler ord op ved store bogstaver (f.eks. LeftFoot -> Left Foot)
+    const formatCamelCase = (str) => {
+        if (!str) return "";
+        return str.replace(/([A-Z])/g, ' \$1').trim();
+    };
+
+    const formattedShotType = formatCamelCase(data.type);
+    const formattedSituation = formatCamelCase(data.situation);
+
+    tooltip.innerHTML = `
+        <div style="font-size:12px; font-weight:900; color:#ffffff; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            ${data.name}
+        </div>
+        <!-- 🎯 Rent tidsformat: [Tal]' (f.eks. 89' (2nd Half)) -->
+        <div style="display:flex; justify-content:space-between; gap:20px; font-size:10px; font-weight:700;">
+            <span style="color:rgba(255,255,255,0.45);">TIME:</span>
+            <span style="color:#ffffff;">${data.min}' (${data.period})</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:20px; font-size:10px; font-weight:700;">
+            <span style="color:rgba(255,255,255,0.45);">xG:</span>
+            <span style="color:#ffffff; font-weight:900;">${data.xg}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:20px; font-size:10px; font-weight:700;">
+            <span style="color:rgba(255,255,255,0.45);">xGOT:</span>
+            <span style="color:#ffffff; font-weight:900;">${data.xgot}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:20px; font-size:10px; font-weight:700; text-transform:uppercase;">
+            <span style="color:rgba(255,255,255,0.45);">SHOT TYPE:</span>
+            <span style="color:#ffffff;">${formattedShotType}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:20px; font-size:10px; font-weight:700; text-transform:uppercase;">
+            <span style="color:rgba(255,255,255,0.45);">SITUATION:</span>
+            <span style="color:#ffffff;">${formattedSituation}</span>
+        </div>
+    `;
+
+    const wrapper = getMatchReportEl("shotmap-pitch-context");
+    const rect = wrapper.getBoundingClientRect();
+    
+    const x = event.clientX - rect.left + 15;
+    const y = event.clientY - rect.top - 45;
+
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+    tooltip.style.opacity = "1";
+}
+
+
+function hideShotmapTooltip() {
+    const tooltip = getMatchReportEl("mr-shotmap-hover-tooltip");
+    if (tooltip) tooltip.style.opacity = "0";
+}
+                            
                  
 // ==========================================================================
 // PER 90 - MATCHREPORT.JS - DEL 11 AF 11 (FIG 6 – ATTACKING ZONES)
@@ -1155,7 +1568,7 @@ function buildFig6AttackingZones() {
         <div style="width:100%; max-width:600px; margin:0 auto 20px auto; display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.03); padding:10px 15px; border-radius:8px; border:1px solid rgba(255,255,255,0.1);">
             <span style="font-size:11px; font-weight:800; color:rgba(255,255,255,0.5); text-transform:uppercase;">Period:</span>
             <select id="mr-zones-dropdown" onchange="MATCH_ZONES_PERIOD=this.value; buildFig6AttackingZones();" style="flex:1; background:#0B1220; color:#fff; border:1px solid rgba(255,255,255,0.1); padding:6px 10px; border-radius:6px; font-weight:700; font-size:13px; outline:none; cursor:pointer;">
-                <option value="total" ${periodKey === 'total' ? 'selected' : ''}>Full Time (Total)</option>
+                <option value="total" ${periodKey === 'total' ? 'selected' : ''}>Full Game</option>
                 <option value="firstHalf" ${periodKey === 'firstHalf' ? 'selected' : ''}>1st Half</option>
                 <option value="secondHalf" ${periodKey === 'secondHalf' ? 'selected' : ''}>2nd Half</option>
             </select>
@@ -1236,7 +1649,7 @@ function buildFig6AttackingZones() {
             <!-- CENTRAL FOOTER -->
             <div style="width:100%; display:flex; justify-content:center; align-items:center; margin-top:20px; box-sizing:border-box;">
                 <div style="font-size:9px; font-weight:800; color:rgba(255,255,255,0.25); letter-spacing:1px; text-transform:uppercase; text-align:center;">
-                    GENERATED VIA PER-90.STREAMLIT.APP
+                    GENERATED VIA PER90.VERCEL.APP
                 </div>
             </div>
         </div>

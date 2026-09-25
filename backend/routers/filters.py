@@ -25,6 +25,8 @@ def get_advanced_filters_data(
 
         custom_titles = {
             #shot
+            f"G/A{suffix}": "G+A",
+            f"npxG + xA{suffix}": "npxG + xA",
             f"total goals{suffix}": "Goals",
             f"xG{suffix}": "npxG",
             f"total ontarget attempt{suffix}": "Shots On Target",
@@ -52,6 +54,7 @@ def get_advanced_filters_data(
             f"cross_success_pct{suffix}": "Cross Accuracy %",
     
             #poss
+            f"Progressive Actions{suffix}": "Progressive Actions",
             f"total won contest{suffix}": "Successful Dribbles",
             f"total contest{suffix}": "Dribble Attempts",
             f"dribble_success_pct{suffix}": "Dribble Success %",

@@ -225,16 +225,16 @@ function triggerEventDataDownload(filename, elementId) {
 
 
 // ==========================================================================
+// PER 90 - EVENTDATA.JS - DEL 3 AF 7 (API-INTEGRATION & GENEREL VISUEL HEADER)
+// ==========================================================================
+
 async function fetchWhoScoredEventFeed() {
-    const urlInput = getEvEl("ev-url-input"); 
-    const spinner = getEvEl("ev-spinner");
+    const urlInput = getEvEl("ev-url-input"); const spinner = getEvEl("ev-spinner");
     if (!urlInput || !urlInput.value.trim()) return;
 
     spinner.style.display = "inline-block";
     try {
-        // Vi rammer din nye, stærke Google Cloud-backend direkte med det rene link!
         const res = await fetch(`${API_BASE_URL}/api/fetch-events?url=${encodeURIComponent(urlInput.value.trim())}`);
-        
         if (res.ok) {
             EV_GLOBAL_DATA = await res.json();
             EV_SELECTED_TEAM = EV_GLOBAL_DATA.match_info.homeId;
@@ -246,19 +246,11 @@ async function fetchWhoScoredEventFeed() {
             getEvEl("ev-display-viewport").style.display = "block";
             switchEventTab(EV_ACTIVE_TAB);
         } else {
-            const err = await res.json(); 
-            alert(`Fejl fra backend: ${err.detail}`);
+            const err = await res.json(); alert(`Fejl: ${err.detail}`);
         }
-    } catch (e) { 
-        console.error(e); 
-        alert("Fejl under indlæsning af WhoScored hændelser via din Google Cloud-backend."); 
-    } finally { 
-        spinner.style.display = "none"; 
-    }
+    } catch (e) { console.error(e); alert("Fejl under indlæsning af WhoScored hændelser."); }
+    finally { spinner.style.display = "none"; }
 }
-
-
-
 
 function switchEventTab(tabId) {
     EV_ACTIVE_TAB = tabId;

@@ -61,6 +61,10 @@ document.addEventListener("DOMContentLoaded", () => {
 // PER 90 - SIMILARITY.JS - DEL 3 AF 8 (KORT-STYLING & LÅSTE HOVER-EFFEKTER)
 // ==========================================================================
 
+// ==========================================================================
+// PER 90 - SIMILARITY.JS - DEL 3 AF 8 (KORT-STYLING & LÅSTE HOVER-EFFEKTER)
+// ==========================================================================
+
 document.addEventListener("DOMContentLoaded", () => {
     const style = document.createElement('style');
     style.innerHTML = `
@@ -71,7 +75,12 @@ document.addEventListener("DOMContentLoaded", () => {
             transition: transform 0.15s ease;
             height: 64px !important;
             max-height: 64px !important;
+            
+            /* 🎯 FIX FRA TABLE.JS: Tvinger rækken til at have afrundede hjørner og klipper alt udenfor væk */
+            border-radius: 12px !important;
+            clip-path: inset(0 round 12px);
         }
+        
         .sim-scouting-table tbody tr:hover { 
             transform: translateX(3px) !important; 
         }
@@ -81,7 +90,9 @@ document.addEventListener("DOMContentLoaded", () => {
             border-right: none !important;
         }
 
+        /* 🎯 FIX FRA TABLE.JS: Fjerner den individuelle celle-baggrund, så den ikke overlapper outline-klippet */
         .sim-scouting-table tbody td {
+            background: transparent !important;
             padding: 0 20px !important;
             border-top: 1px solid rgba(255,255,255,0.04);
             border-bottom: 1px solid rgba(255,255,255,0.04);
@@ -97,6 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.head.appendChild(style);
 });
+
 // ==========================================================================
 // PER 90 - SIMILARITY.JS - DEL 4 AF 8 (FASTE BREDDE-KANALER & DATA-TEKST CSS)
 // ==========================================================================
@@ -113,6 +125,17 @@ document.addEventListener("DOMContentLoaded", () => {
         .sim-col-min { width: 90px !important; min-width: 90px !important; max-width: 90px !important; text-align: center !important; }
         .sim-col-metric { width: 180px !important; min-width: 180px !important; max-width: 180px !important; text-align: center !important; }
 
+        /* 💻 RESPONSIVT TABLET LAYOUT (600px - 1100px): Gør Similarity-baren markant større */
+        @media (min-width: 600px) and (max-width: 1100px) {
+            .sim-col-pos, .sim-col-age, .sim-col-min { 
+                display: none !important; 
+            }
+            /* Giver Similarity-kolonnen ekstra meget plads og bredde, når de andre kolonner er væk */
+            .sim-col-metric { 
+                width: 260px !important; min-width: 260px !important; max-width: 260px !important; 
+            }
+        }
+
         /* Datakomponent-formatering baseret på de nye taljusteringer */
         .sim-row-rank { font-size: 16px !important; font-weight: 800; color: var(--accent-purple); text-shadow: 0 0 12px rgba(168,85,247,0.25); line-height: 64px !important; height: 64px !important; display: block !important; }
         .sim-row-meta-val { font-size: 13px !important; font-weight: 900; color: #94a3b8 !important; line-height: 64px !important; }
@@ -125,10 +148,17 @@ document.addEventListener("DOMContentLoaded", () => {
         .sim-row-player-name { font-size: 14px; font-weight: 900; color: #fff; margin: 0 !important; padding: 0 !important; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 16px !important; height: 16px !important; display: block !important; }
         .sim-row-subtext { font-size: 10.5px; color: #64748b; font-weight: 600; margin: 4px 0 0 0 !important; padding: 0 !important; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 12px !important; height: 12px !important; display: block !important; }
         
-        .sim-row-bar-container { display: block !important; width: 100%; text-align: center; }
-        .sim-row-bar-bg { width: 100%; height: 4px; background: rgba(255,255,255,0.04); border-radius: 10px; overflow: hidden; margin: 6px auto 0 auto !important; }
-        .sim-row-bar-fill { height: 100%; background: var(--accent-purple); border-radius: 10px; width: 0%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        .sim-row-score-value { font-size: 14px; font-weight: 900; color: var(--accent-purple); margin: 0 !important; padding: 0 !important; width: 100%; text-shadow: 0 0 10px rgba(168,85,247,0.2); line-height: 16px !important; height: 16px !important; display: block !important; }
+        /* 🎯 FIX FRA TABLE.JS: Omdannet til flexbox for at sikre perfekt spredning af bjælken uden brud i venstre side */
+        .sim-row-bar-container { display: flex !important; flex-direction: column; align-items: center; justify-content: center; width: 100%; text-align: center; }
+        
+        /* 🎯 FIX: Tvunget overflow og border-radius, så rektanglen bagved klippes fuldstændig væk */
+        .sim-row-bar-bg { width: 100%; height: 4px; background: rgba(255,255,255,0.04); border-radius: 10px !important; overflow: hidden !important; margin: 6px auto 0 auto !important; }
+        
+        /* 🎯 FIX: Sikrer fuld og blød afrunding i BÅDE venstre og højre side af bjælken */
+        .sim-row-bar-fill { height: 100%; background: var(--accent-purple); border-radius: 10px !important; width: 0%; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        
+        /* 🎯 FIX: Fjernet de hårde højder for at lade flex-motoren placere teksten perfekt over bjælken */
+        .sim-row-score-value { font-size: 14px; font-weight: 900; color: var(--accent-purple); margin: 0 !important; padding: 0 !important; width: 100%; text-shadow: 0 0 10px rgba(168,85,247,0.2); line-height: 1 !important; display: block !important; }
 
         .sim-custom-option-item { padding: 10px 14px; color: #f3f1f6; cursor: pointer; font-size: 14px; transition: all 0.15s ease; font-family: Gabarito, sans-serif; }
         .sim-custom-option-item:hover { background-color: rgba(168, 85, 247, 0.25) !important; color: #ffffff !important; padding-left: 18px; }
@@ -136,6 +166,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.head.appendChild(style);
 });
+
 // ==========================================================================
 // PER 90 - SIMILARITY.JS - DEL 5 AF 8 (ULTRA-COMPACT MOBIL SENSOR-CSS)
 // ==========================================================================
@@ -144,7 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const style = document.createElement('style');
     style.innerHTML = `
         /* 📱 ULTRA-COMPACT MOBILOPTIMERING V6 */
-        @media (max-width: 480px) {
+        @media (max-width: 599px) {
             .sim-scouting-table th { padding: 6px 6px !important; }
             .sim-scouting-table tbody td { padding: 0 6px !important; height: 48px !important; max-height: 48px !important; }
             .sim-scouting-table tbody tr { height: 48px !important; max-height: 48px !important; }
@@ -158,15 +189,18 @@ document.addEventListener("DOMContentLoaded", () => {
             .sim-row-logo-box { width: 26px !important; height: 30px !important; padding: 2px !important; border-radius: 5px !important; }
             .sim-row-player-name { font-size: 10px !important; }
             .sim-row-subtext { font-size: 8px !important; margin-top: 1px !important; }
-            .sim-row-score-value { font-size: 10px !important; }
+            
+            /* 🎯 FIX FRA TABLE.JS: Låser linjehøjden til 1 på mobil, så flex-containeren centrerer teksten perfekt */
+            .sim-row-score-value { font-size: 10px !important; line-height: 1 !important; }
             
             /* Aktiverer mobil-metateksten under navnet på små skærme */
             .sim-mobile-meta-span { display: block !important; font-size: 7.5px !important; color: #475569 !important; text-transform: uppercase; margin-top: 2px; }
             .sim-pc-meta-span { display: none !important; }
         }
         
-        @media (min-width: 481px) {
+        @media (min-width: 600px) {
             .sim-mobile-meta-span { display: none !important; }
+            .sim-pc-meta-span { display: inline !important; }
         }
     `;
     document.head.appendChild(style);
@@ -177,6 +211,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
+
+
 // ==========================================================================
 // PER 90 - SIMILARITY.JS - DEL 6 AF 8 (HTML INITIALISERING & BOOTSTRAP LOGIK)
 // ==========================================================================
@@ -562,14 +598,6 @@ function buildSimilarityLeaderboardEngine() {
                 </tr>
         `;
     }).join('');
-
-    markup += `
-            </tbody>
-        </table>
-        <table style="width:100%; border-collapse:collapse; margin-top:15px; font-family:'Gabarito',sans-serif; text-align:center;">
-            <tr style="opacity:0.45;"><td style="font-size:11px; color:#e5e7eb; letter-spacing:0.4px; padding:2px 0;">Generated via per-90.streamlit.app</td></tr>
-        </table>
-    `;
 
     container.innerHTML = markup;
 

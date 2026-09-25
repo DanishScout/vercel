@@ -21,13 +21,41 @@ body { background-color: var(--bg-dark); color: var(--text-primary); font-family
 .sidebar { width: 200px; background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; padding: 24px 8px 24px 16px; z-index: 10; height: 100vh; }
 .nav-menu { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 8px; }
 .nav-menu::-webkit-scrollbar { width: 4px; } .nav-menu::-webkit-scrollbar-track { background: transparent; } .nav-menu::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
-.logo { font-size: 15px; font-weight: 900; letter-spacing: 7px; margin: 0 auto 40px auto; text-transform: uppercase; display: flex; justify-content: center; align-items: center; width: fit-content; text-indent: 7px; background: none; border: none; padding: 0; box-shadow: none; }
+/* Placerer logoet øverst på PC igen med god luft i bunden */
+.logo { 
+    font-size: 15px; 
+    font-weight: 900; 
+    letter-spacing: 7px; 
+    margin: 0 auto 40px auto; /* 🎯 Nulstillet til at give luft under logoet */
+    text-transform: uppercase; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    width: fit-content; 
+    text-indent: 7px; 
+    background: none; 
+    border: none; 
+    padding: 0; 
+    box-shadow: none; 
+    /* 🎯 order: 3; er fjernet herfra */
+}
+
+/* Nulstiller foden i PC-sidebaren */
+.sidebar-footer { 
+    color: var(--text-muted); 
+    font-size: 12px; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    /* 🎯 order: 2; er fjernet herfra */
+}
+
+
 .logo-main { color: #ffffff !important; } .logo-sub { color: #ffffff !important; margin-left: 4px; }
 .nav-section { font-size: 11px; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin: 16px 0 8px 12px; }
 .nav-item { background: none; border: none; color: var(--text-muted); display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
 .nav-item:hover { color: var(--text-primary); background-color: rgba(255, 255, 255, 0.03); }
 .nav-item.active { color: var(--text-primary); background-color: var(--accent-purple-dim); border-left: 3px solid var(--accent-purple); }
-.sidebar-footer { color: var(--text-muted); font-size: 12px; display: flex; align-items: center; gap: 8px; }
 /* ==========================================================================
    PER 90 - CORE STYLES (STADIONGRÆS & PC-CONTAINERE) - DEL 2 AF 4
    ========================================================================== */
@@ -159,18 +187,67 @@ body { background-color: var(--bg-dark); color: var(--text-primary); font-family
 /* ==========================================================================
    PER 90 - RESPONSIV MOBILOPTIMERING (RETTET: INGEN HOVER-CRASH & FRI SCROLL)
    ========================================================================== */
-@media screen and (max-width: 900px) {
+@media screen and (max-width: 910px) {
     body { overflow-y: scroll !important; height: auto; } /* 🎯 FIX: Sikrer universel scroll på mobil */
     .app-container { flex-direction: column; height: auto; width: 100vw; }
 
-    /* Sticky topbar på mobilen */
-    .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-color); padding: 14px 16px; display: flex; flex-direction: row; justify-content: space-between; align-items: center; position: sticky; top: 0; background-color: var(--bg-sidebar); z-index: 1000; overflow: visible; }
-    .sidebar::after { content: none; }
-    .logo { margin-bottom: 0; font-size: 18px; flex-shrink: 0; }
+    /* Gør topbaren ultra-smal og skubber logo til venstre og menu til højre */
+    /* Gør topbaren ultra-smal og bytter rundt (Menu til venstre, logo til højre) */
+    .sidebar { 
+        width: 100%; 
+        height: auto; 
+        border-right: none; 
+        border-bottom: 1px solid var(--border-color); 
+        padding: 2px 24px;       
+        display: flex; 
+        flex-direction: row-reverse; /* Beholder Menu til venstre, Logo til højre */
+        justify-content: center;     /* 🎯 FIX: Centrerer begge elementer samlet i midten */
+        gap: 20px;                   /* 🎯 FIX: Giver en pæn afstand mellem menu og logo i midten */
+        align-items: center;      
+        position: sticky; 
+        top: 0; 
+        background-color: var(--bg-sidebar); 
+        z-index: 1000; 
+        overflow: visible; 
+    }
+
+    
+    /* Logoet i højre side af topbaren */
+    .logo { 
+        position: static;         
+        margin: 0px 0 0 0 !important; /* Beholder din gode højdejustering */
+        font-size: 15px;          
+        font-weight: 900;
+        letter-spacing: 5px;      
+        flex-shrink: 0;
+        order: unset;             
+        width: auto !important;  
+        max-width: fit-content !important;
+        display: inline-block !important;
+    }
+    
     .nav-section, .sidebar-footer { display: none !important; }
 
     /* 🎯 DYNAMISK FLEXBOX MOBIL dropdown (Slut med hårde top: px-fejl!) */
-    .nav-menu { display: flex; flex-direction: column; gap: 0; flex-grow: 0; position: relative; background: #07030c; border: 1px solid var(--accent-purple); border-radius: 6px; width: 150px; height: 36px; overflow: visible; cursor: pointer; }
+    .nav-menu { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 0; 
+        flex-grow: 0; 
+        position: relative; 
+        background: #07030c; 
+        border: 1px solid var(--accent-purple); 
+        border-radius: 6px; 
+        width: 150px; 
+        height: 36px; 
+        overflow: visible; 
+        cursor: pointer; 
+        z-index: 9999; 
+        /* 🎯 FIX: Hiver udelukkende Menu-knappen en smule ned på mobilen */
+        margin-top: 20px; 
+    }
+
+
     .nav-menu::before { content: "MENU ▾"; display: flex; align-items: center; justify-content: center; height: 34px; width: 100%; font-size: 11px; font-weight: 800; color: var(--text-primary); letter-spacing: 1px; text-transform: uppercase; }
     
     .nav-menu .nav-item { display: none !important; }

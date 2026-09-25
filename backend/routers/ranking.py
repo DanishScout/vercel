@@ -143,7 +143,7 @@ def get_performance_ranking(
 
     # Sorter efter højeste score og tag de sande top 9 (eller top 10 til API-pakken)
     df_sorted = df.sort_values("role_score", ascending=False).reset_index(drop=True)
-    top_10 = df_sorted.head(10)
+    top_10 = df_sorted.head(12)
 
     rows_list = []
     for idx, row in top_10.iterrows():

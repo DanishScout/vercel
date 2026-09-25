@@ -56,12 +56,12 @@ document.addEventListener("DOMContentLoaded", () => {
         .rank-leaderboard-card { background: linear-gradient(180deg, #0f172a 0%, #020617 100%) !important; border: 1px solid rgba(255,255,255,0.04); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 12px 25px rgba(0,0,0,0.4); box-sizing: border-box; transition: transform 0.15s ease, border-color 0.15s; position: relative; }
         .rank-leaderboard-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.09); }
         .rank-card-top-row { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 12px; }
-        .rank-row-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex-grow: 1; }
+        .rank-row-left { display: flex; align-items: center; gap: 12px; min-width: 0 !important; width: 0 !important; flex-grow: 1; }
+        .rank-row-names { display: flex; flex-direction: column; gap: 2px; min-width: 0 !important; width: 0 !important; flex-grow: 1; text-align: left; }
         .rank-row-logo-box { width: 42px; height: 42px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 3px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-sizing: border-box; }
         .rank-row-crest { width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.25s ease-in-out; }
         .rank-row-crest.logo-loaded { opacity: 1 !important; }
-        .rank-row-names { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1; text-align: left; }
-        .rank-row-player-name { font-size: 12.5px !important; font-weight: 900; color: #fff; margin: 0; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; line-height: 1.2; }
+        .rank-row-player-name { font-size: 12.5px !important; font-weight: 900; color: #fff; margin: 0; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; display: block !important; max-width: 100% !important; line-height: 1.2; }
         .rank-row-subtext { font-size: 9.5px !important; color: #94a3b8 !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .rank-row-meta-val-pos { color: inherit !important; font-weight: 800; }
         .rank-row-pipe-divider { color: inherit !important; opacity: 0.4 !important; padding: 0 5px; font-weight: 400; }
@@ -89,9 +89,6 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.head.appendChild(style);
 });
-// ==========================================================================
-// PER 90 - RANKING.JS - VIEW INITIALIZATION & API DATA ENGINE (DEL 3 AF 6)
-// ==========================================================================
 
 async function initRankingView(container) {
     container.innerHTML = `
@@ -104,12 +101,17 @@ async function initRankingView(container) {
                 <button class="open-drawer-btn" onclick="openGlobalDrawer()">Customize Ranking Engine <i class="fa-solid fa-sliders" style="margin-left: 6px;"></i></button>
             </div>
             <div class="rank-blocks-container" id="rank-capture-target-area" style="padding: 15px 5px; width: 100%; box-sizing: border-box;">
-                <div style="text-align:center; padding:50px; color:#64748b; font-weight:700; grid-column: span 3;">ÅBEN INDSTILLINGER FOR AT VÆLGE POSITION OG SCOUTE ROLLEN</div>
+                <!-- 🎯 SAMME LILLA LOADING SPINNER SOM I DINE ANDRE MODULER -->
+                <div id="rank-initial-spinner" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; gap: 12px; color: #94a3b8; font-family: 'Gabarito', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; grid-column: span 3; width: 100%;">
+                    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 40px; color: var(--accent-purple); height: 40px; width: 40px; display: flex; align-items: center; justify-content: center;"></i>
+                    <span>Loading...</span>
+                </div>
             </div>
         </section>
     `;
     await bootstrapRankingFilters();
 }
+
 
 async function loadRankingAPIDataFeed() {
     try {
@@ -292,12 +294,11 @@ function buildAndAppendRankingDrawerHTML(configData, leagueList = []) {
     `;
     document.body.appendChild(drawerDiv);
 }
-// ==========================================================================
-// PER 90 - RANKING.JS - LEADERBOARD CARD & LOGO PARALLEL ENGINE (DEL 6 AF 6)
-// ==========================================================================
 
 function buildRankingLeaderboardEngine() {
     const container = getRankEl("rank-capture-target-area"); if (!container || !RANK_GLOBAL_DATA) return;
+    
+    // 🎯 FJERNER AUTOMATISK SPINNEREN VED AT RYDDE CONTAINEREN INDEN DET NYE PRINT
     container.innerHTML = "";
 
     const list = RANK_GLOBAL_DATA.players || [];
@@ -305,6 +306,7 @@ function buildRankingLeaderboardEngine() {
         container.innerHTML = `<div style="text-align:center; padding:50px; color:#64748b; font-weight:700; grid-column: span 3;">NO MATCHES WITHIN FILTERS</div>`;
         return;
     }
+
 
     const barColors = ["#3498db", "#2ecc71", "#9b59b6", "#e74c3c", "#1abc9c", "#e67e22"];
     const top9 = list; 
@@ -350,11 +352,7 @@ function buildRankingLeaderboardEngine() {
                         </div>
                         <div class="rank-row-names">
                             <h4 class="rank-row-player-name" style="font-size: ${dynamicFontSize} !important;" title="${p.player_name}">${fullPlayerName}</h4>
-                            <div class="rank-row-subtext">
-                                <span>${p.age} y/o <span class="rank-row-meta-val-pos">${p.position}</span></span>
-                                <span class="rank-row-pipe-divider">|</span>
-                                <span class="rank-row-team-name">${p.team}</span>
-                            </div>
+                            <div class="rank-row-subtext"><span>${p.age} y/o</span><span class="rank-row-pipe-divider">|</span><span class="rank-row-team-name">${p.team}</span></div>
                         </div>
                     </div>
                     <div class="rank-score-block">

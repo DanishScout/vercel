@@ -108,7 +108,23 @@ document.addEventListener("DOMContentLoaded", () => {
             background: linear-gradient(315deg, rgba(217,70,239,0.08) 0%, rgba(0,0,0,0) 80%) !important;
         }
 
-        #view-radar .p-nm { font-size: 15px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 2px; opacity: 0.95; display: block; width: 100%; }
+
+        #view-radar .p-nm { 
+            font-size: 15px; 
+            font-weight: 600; 
+            margin: 0; 
+            text-transform: uppercase; 
+            letter-spacing: 2px; 
+            opacity: 0.95; 
+            display: block; 
+            width: 100%; 
+        
+            /* 🎯 NYE REGLER DER FORHINDRER LINJESKIFT OG TILFØJER '...' */
+            white-space: nowrap;       /* Forhindrer teksten i at knække over i to linjer */
+            overflow: hidden;          /* Skjuler den tekst, der ryger uden for cellen */
+            text-overflow: ellipsis;   /* Tilføjer automatisk '...' til sidst */
+        }
+
         .radar-header-table .td-left .p-nm { text-align: left !important; }
         .radar-header-table .td-right .p-nm { text-align: right !important; }
         
@@ -123,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
         #radar-svg-element { display: block; margin: 0 auto; overflow: visible; max-width: 100%; height: auto; }
         #view-radar .grid-poly { fill: rgba(255,255,255,0.005); stroke: rgba(255,255,255,0.1); }
         #view-radar .grid-line { stroke: rgba(255,255,255,0.075); stroke-dasharray: 4,4; }
-        #view-radar .ax-lbl { font-size: 10px; fill: #94a3b8; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; font-family: 'Gabarito', sans-serif; }
+        #view-radar .ax-lbl { font-size: 11px; fill: #ffffff; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; font-family: 'Gabarito', sans-serif; }
         
         /* SEMANTISK FOOTER-TABEL */
         .radar-footer-table {
@@ -331,24 +347,55 @@ function buildRadarVektorSpiderweb(d1, d2) {
     if (d2 && d2.metrics) markup += generatePlayerPathMarkup(d2, RADAR_COLOR_2, RADAR_COLOR_2);
     markup += generatePlayerPathMarkup(d1, RADAR_COLOR_1, RADAR_COLOR_1);
 
+
     d1.metrics.forEach((metric, i) => {
         const a = i * angle - Math.PI / 2;
         const cos = Math.cos(a), sin = Math.sin(a);
         
-        const tx = CX + (MAX_R + 32) * cos;
-        const ty = CY + (MAX_R + 32) * sin;
-
+        const tx = CX + (MAX_R + 44) * cos;
+        const ty = CY + (MAX_R + 44) * sin;
+    
         const score1 = Math.round(d1.percentiles[i] || 0);
         const score2 = d2 && d2.percentiles ? Math.round(d2.percentiles[i] || 0) : 0;
 
         markup += `<g transform="translate(${tx}, ${ty - 4})">`;
         
+        // SØG EFTER DETTE OMRÅDE I buildRadarVektorSpiderweb:
         const words = metric.split(" ");
         let boxY = 14; 
-
+        
         if (words.length >= 2) {
-            const line1 = words[0]; // 🎯 REPARATION: Rettet 'words' til 'words[0]', så hele arrayet ikke udskrives på én linje
-            const line2 = words.slice(1).join(" ");
+            // 🎯 SMART KARAKTER-BALANCERING LOGIK
+            let bestSplitIndex = 1;
+            let minDifference = Infinity;
+        
+            // Loop igennem alle mulige steder at dele sætningen
+            for (let i = 1; i < words.length; i++) {
+                const line1Test = words.slice(0, i).join(" ");
+                const line2Test = words.slice(i).join(" ");
+        
+                // Beregn længden på de to linjer
+                const len1 = line1Test.length;
+                const len2 = line2Test.length;
+                
+                // Straf delinger, hvor sidste linje er ekstremt kort (f.eks. kun et %-tegn eller et tal)
+                let penalty = 0;
+                if (line2Test.trim().length <= 2) {
+                    penalty = 25; // Giver en solid straf så den foretrækker at holde ordene sammen
+                }
+        
+                const difference = Math.abs(len1 - len2) + penalty;
+        
+                if (difference < minDifference) {
+                    minDifference = difference;
+                    bestSplitIndex = i;
+                }
+            }
+        
+            // Eksekver den mest optimale deling fundet ovenfor
+            const line1 = words.slice(0, bestSplitIndex).join(" ");
+            const line2 = words.slice(bestSplitIndex).join(" ");
+            
             markup += `
                 <text x="0" y="-12" class="ax-lbl" text-anchor="middle" dominant-baseline="central">${line1}</text>
                 <text x="0" y="2" class="ax-lbl" text-anchor="middle" dominant-baseline="central">${line2}</text>
@@ -357,6 +404,8 @@ function buildRadarVektorSpiderweb(d1, d2) {
             markup += `<text x="0" y="-5" class="ax-lbl" text-anchor="middle" dominant-baseline="central">${metric}</text>`;
             boxY = 11;
         }
+
+
 
         // Beregner det absolutte midtpunkt for x i boksene ud fra boksbredden på 25px
         const b1X = -27;
@@ -577,8 +626,8 @@ async function loadRadarChartDataWithFilters(p1, p2, metricsList) {
                 <svg width="710" height="600" viewBox="0 0 710 600" id="radar-svg-element"></svg>
 
                 <table class="radar-footer-table">
-                    <tr><td>Percentile Spiderweb Comparison</td></tr>
-                    <tr><td style="opacity:0.6;">Generated via per-90.streamlit.app</td></tr>
+                    <tr><td>Percentile rank vs. positional peers in league</td></tr>
+                    <tr><td style="opacity:0.6;">Generated via per90.vercel.app</td></tr>
                 </table>
             </div>
             
@@ -600,22 +649,6 @@ async function loadRadarChartDataWithFilters(p1, p2, metricsList) {
     } catch (e) { console.error("Radar motorfejl:", e); }
 }
 
-// ==========================================================================
-// PER 90 - RADAR.JS - DEL 6 - APART B (ISOLERET DOWNLOAD-MOTOR)
-// ==========================================================================
-
-// ==========================================================================
-// PER 90 - RADAR.JS - DEL 6 - PART B - SPLIT 1 (KLONING & OVERRIDE STYLE)
-// ==========================================================================
-
-// ==========================================================================
-// PER 90 - RADAR.JS - DEL 6 - PART B - SPLIT 1 (KLONING & OVERRIDE STYLE)
-// ==========================================================================
-
-// ==========================================================================
-// PER 90 - RADAR.JS - DEL 6 - PART B - SPLIT 1 (KLONING & OVERRIDE STYLE)
-// ==========================================================================
-
 function downloadRadarPNG() {
     const originalEl = $r("radar-capture-target-area"); if (!originalEl) return;
     
@@ -628,6 +661,16 @@ function downloadRadarPNG() {
     const clone = originalEl.cloneNode(true);
     clone.id = "radar-download-clone";
     
+    // 🎯 SKUDSIKKER FIX: Gå ind i klonen og tving fysiske '...' på lange navne før download
+    const cloneNames = clone.querySelectorAll(".p-nm");
+    cloneNames.forEach(el => {
+        let nameText = el.innerText.trim();
+        // Hvis navnet er over 22 tegn (f.eks. Lamine Yamal Nasraoui Ebana), klipper vi det manuelt
+        if (nameText.length > 22) {
+            el.innerText = nameText.substring(0, 20) + "...";
+        }
+    });
+    
     Object.assign(clone.style, {
         width: "710px", minWidth: "710px", maxWidth: "710px",
         padding: "30px", background: "#0B1220", boxSizing: "border-box"
@@ -636,6 +679,7 @@ function downloadRadarPNG() {
     hiddenContainer.appendChild(clone);
     
     const overrideStyle = document.createElement("style");
+ 
     overrideStyle.innerHTML = `
         /* Overstyrer AL global responsive CSS udelukkende dybt inde i klonen under download */
         #radar-download-clone table.radar-header-table { 
@@ -655,6 +699,10 @@ function downloadRadarPNG() {
             background: none !important;
             height: 80px !important;
             box-sizing: border-box !important;
+            
+            /* 🎯 NYT TIL DOWNLOAD: Fastlåser bredden, så html2canvas kan beregne ellipsis */
+            width: 325px !important; 
+            max-width: 325px !important;
         }
         
         #radar-download-clone table.radar-header-table td.td-left { 
@@ -668,7 +716,8 @@ function downloadRadarPNG() {
             background: linear-gradient(315deg, rgba(217,70,239,0.08) 0%, rgba(0,0,0,0) 80%) !important;
         }
         
-        /* 🎯 FASTLÅST LINE-HEIGHT: Sikrer at afstanden fra tekstens bund altid er præcis ens */
+
+        /* 2️⃣ OPDATER NAVNET: Begræns den maksimale bredde i pixels for selve teksten */
         #radar-download-clone .p-nm { 
             font-size: 15px !important; 
             letter-spacing: 2px !important; 
@@ -676,9 +725,16 @@ function downloadRadarPNG() {
             margin: 0 !important;
             padding: 0 !important;
             display: block !important; 
-            width: 100% !important; 
             opacity: 0.95 !important; 
+        
+            /* 🎯 FIX TIL HTML2CANVAS: Tvinger prikkerne frem ved at give en kontant max-width */
+            width: 100% !important;
+            max-width: 275px !important; /* Giver 325px minus celle-padding */
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
         }
+
         #radar-download-clone table.radar-header-table td.td-left .p-nm { text-align: left !important; }
         #radar-download-clone table.radar-header-table td.td-right .p-nm { text-align: right !important; }
         
@@ -698,21 +754,35 @@ function downloadRadarPNG() {
         
         #radar-download-clone .info-tag { 
             font-size: 11px !important; 
-            padding: 2px 6px !important; 
+            font-weight: 700 !important; 
             letter-spacing: 0.5px !important; 
-            display: inline-block !important; 
             background: rgba(255,255,255,0.05) !important; 
             border-radius: 4px !important; 
-            line-height: 14px !important;
-            height: 18px !important;
             box-sizing: border-box !important;
+            
+            /* 🎯 MANUEL RENDERING-BALANCERING TIL DOWNLOAD */
+            display: inline-block !important;
+            height: 19px !important;
+            line-height: 11px !important; /* Låser linjehøjden præcis til skrifttypens størrelse */
+            
+            /* Juster disse to tal hvis teksten stadig mangler en enkelt pixel i at være centreret: */
+            padding-top: 3px !important;    /* Trækker teksten en anelse ned */
+            padding-bottom: 3px !important; /* Giver luft i bunden */
+            padding-left: 6px !important;
+            padding-right: 6px !important;
         }
+
         #radar-download-clone table.radar-header-table td.td-left .info-tag { border-left: 2px solid var(--radar-p1-color, #00f0ff) !important; }
         #radar-download-clone table.radar-header-table td.td-right .info-tag { border-right: 2px solid var(--radar-p2-color, #d946ef) !important; }
 
         #radar-download-clone .p-row .info-tag:nth-child(3) { display: inline-block !important; }
         
-        #radar-download-clone .ax-lbl { font-size: 10px !important; font-weight: 800 !important; }
+        #radar-download-clone .ax-lbl { 
+            font-size: 11px !important; 
+            font-weight: 700 !important; 
+            fill: #ffffff !important; /* ⬅️ Gør teksten hvid på det downloadede PNG-billede */
+        }
+
         #radar-download-clone .svg-score-text { font-size: 10px !important; font-weight: 700 !important; }
         
         #radar-download-clone .radar-footer-table { 
@@ -747,7 +817,7 @@ function downloadRadarPNG() {
             logging: false 
         }).then(canvas => {
             const link = document.createElement("a"); 
-            link.download = `radar_comparison.png`;
+            link.download = "radar.png";
             link.href = canvas.toDataURL("image/png"); 
             link.click();
             hiddenContainer.remove(); overrideStyle.remove();

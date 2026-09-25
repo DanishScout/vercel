@@ -85,6 +85,12 @@ def get_match_report_data(
         shotmap_entries = []
         player_stats_dict = match_data.get("content", {}).get("playerStats", {})
         
+                # ------------------------------------------------------------------
+        # DATABASE 2: SHOTMAP DATA
+        # ------------------------------------------------------------------
+        shotmap_entries = []
+        player_stats_dict = match_data.get("content", {}).get("playerStats", {})
+        
         for player_id, player_info in player_stats_dict.items():
             shotmap = player_info.get("shotmap", [])
             for shot in shotmap:
@@ -98,10 +104,15 @@ def get_match_report_data(
                     "y": shot.get("y", 0.0),
                     "min": shot.get("min", 0),
                     "minAdded": shot.get("minAdded"),
+                    "period": shot.get("period"),  
                     "expectedGoals": shot.get("expectedGoals", 0.0),
                     "expectedGoalsOnTarget": shot.get("expectedGoalsOnTarget", 0.0),
+                    "shotType": shot.get("shotType", ""),  # <--- TILFØJET: F.eks. "RightFoot", "Head" osv.
+                    "situation": shot.get("situation", ""),  # <--- TILFØJET: F.eks. "RegularPlay", "SetPiece" osv.
                     "isOwnGoal": shot.get("isOwnGoal", False)
                 })
+
+
 
         # ------------------------------------------------------------------
         # DATABASE 3: TEAM STATS MATRIX

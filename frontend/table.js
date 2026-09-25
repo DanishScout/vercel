@@ -55,11 +55,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
 
-        /* DET FLOTTE, MØRKE DIAGRAM-KORT (Bygget direkte på <td>-rækken) */
+        /* DET FLOTTE, MØRKE DIAGRAM-KORT */
         .scouting-leaderboard-table tbody tr {
             background: linear-gradient(180deg, #0f172a 0%, #020617 100%) !important;
             box-shadow: 0 15px 35px rgba(0,0,0,0.5);
             transition: transform 0.15s ease;
+            
+            /* 🎯 FIX FOR OUTLINE: Tvinger rækken til at have afrundede hjørner og klipper alt udenfor væk */
+            border-radius: 12px !important;
+            clip-path: inset(0 round 12px);
+        }
+        
+        /* Fjern eventuel individuel celle-baggrund, så de ikke overlapper */
+        .scouting-leaderboard-table tbody td {
+            background: transparent !important;
         }
         
         /* 🎯 FIX: Tvinger alle interne linjer og borders væk under hover, så der ikke popper streger op */
@@ -163,6 +172,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.head.appendChild(style);
 });
+
 // ==========================================================================
 // PER 90 - TABLE.JS - DEL 3 AF 6 (VIEW INITIALISERING & DRAWER UI BUILDER)
 // ==========================================================================
@@ -179,15 +189,22 @@ async function initTableView(container) {
                 <button class="open-drawer-btn" onclick="openGlobalDrawer()">Customize Leaderboard <i class="fa-solid fa-sliders" style="margin-left: 6px;"></i></button>
             </div>
             
-            <div class="table-blocks-container" id="table-capture-target-area" style="padding: 15px 5px; width: 100%; box-sizing: border-box;"></div>
+            <div class="table-blocks-container" id="table-capture-target-area" style="padding: 15px 5px; width: 100%; box-sizing: border-box;">
+                <!-- 🎯 IDENTISK LOADING SPINNER - Synkroniseret med filters.js -->
+                <div id="table-initial-spinner" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; gap: 12px; color: #94a3b8; font-family: 'Gabarito', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; width: 100%;">
+                    <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 40px; color: var(--accent-purple); height: 40px; width: 40px; display: flex; align-items: center; justify-content: center;"></i>
+                    <span>Loading...</span>
+                </div>
+            </div>
 
             <div style="display: flex; justify-content: center; margin-top: 30px; width: 100%;">
-                <button onclick="downloadTablePNG()" style="background: var(--accent-purple); color: #06140c; border: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px;">Download Leaderboard as PNG</button>
+                <button onclick="downloadTablePNG()" style="background: var(--accent-purple); color: #06140c; border: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px;">Download as PNG</button>
             </div>
         </section>
     `;
     await loadTableAPIDataFeed();
 }
+
 
 function buildAndAppendTableDrawerHTML() {
     const gammelDrawer = document.querySelector('.table-filter-drawer');
@@ -413,6 +430,8 @@ function updateDynamicTableDropdownsOnly() {
 
 async function buildTableLeaderboardEngine() {
     const container = $t("table-capture-target-area"); if (!container || !TABLE_GLOBAL_DATA) return;
+    
+    // 🎯 NULSTILLER CONTAINEREN (Fjerner automatisk #table-initial-spinner)
     container.innerHTML = "";
 
     const filtered = TABLE_GLOBAL_DATA.players.filter(p => {
@@ -510,6 +529,7 @@ async function buildTableLeaderboardEngine() {
         }
     });
 }
+
 // ==========================================================================
 // PER 90 - TABLE.JS - DEL 6 AF 6 (ISOLERET MASTER-CLONE DOWNLOAD MOTOR)
 // ==========================================================================
@@ -594,7 +614,7 @@ function downloadTablePNG() {
             logging: false 
         }).then(canvas => {
             const link = document.createElement("a"); 
-            link.download = `leaderboard_top10_${TABLE_SELECTED_METRIC.replace(/\\s+/g, '_')}.png`;
+            link.download = "table.png";
             link.href = canvas.toDataURL("image/png"); link.click();
             hiddenContainer.remove(); overrideStyle.remove();
         }).catch(e => { console.error("Fejl under urokkelig tabel eksport:", e); hiddenContainer.remove(); overrideStyle.remove(); });

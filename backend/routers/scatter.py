@@ -25,6 +25,8 @@ def get_scatter_plot_data(
         # 2. MAPPING AF METRIK-NAVNE TIL PRECISE TITLER UDEN _p90/_Total STØJ
         custom_titles = {
             #shot
+            f"G/A{suffix}": "G+A",
+            f"npxG + xA{suffix}": "npxG + xA",
             f"total goals{suffix}": "Goals",
             f"xG{suffix}": "npxG",
             f"total ontarget attempt{suffix}": "Shots On Target",
@@ -35,6 +37,7 @@ def get_scatter_plot_data(
             f"total attempts ibox{suffix}": "Shots Inside Box",
     
             #pass
+            f"Progressive Actions{suffix}": "Progressive Actions",
             f"total assists{suffix}": "Assists",
             f"xA{suffix}": "xA",
             f"total att assist{suffix}": "Key Passes",

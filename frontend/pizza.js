@@ -65,71 +65,83 @@ if (typeof window.pizzaChartInstance === 'undefined') window.pizzaChartInstance 
 
 const $ = id => document.getElementById(id);
 const toggleDisplay = (el, show) => el && (el.style.display = show ? "block" : "none");
-// ==========================================================================
-// PER 90 - PIZZA.JS - DEL 2 AF 7 (RUNTIME DESIGN & RESPONSIV TABEL-CSS)
-// ==========================================================================
+/* ==========================================================================
+/* PER 90 - PIZZA.JS - DEL 2 AF 7 (RUNTIME DESIGN & RESPONSIV TABEL-CSS)
+// ========================================================================== */
 
 document.addEventListener("DOMContentLoaded", () => {
     const style = document.createElement('style');
     style.innerHTML = `
         .custom-option-item { padding: 10px 14px; color: #f3f1f6; cursor: pointer; font-size: 14px; transition: all 0.15s ease; font-family: 'Gabarito', sans-serif; }
-        .custom-option-item:hover { background-color: rgba(168, 85, 247, 0.25) !important; color: #ffffff !important; padding-left: 18px; }
-        .custom-option-item.selected-active { background-color: var(--accent-purple) !important; color: #ffffff !important; }
+        .custom-option-item:hover { background-color: rgba(147, 51, 234, 0.2) !important; color: #ffffff !important; padding-left: 18px; }
+        .custom-option-item.selected-active { background-color: #581c87 !important; color: #ffffff !important; }
+
+        #chart-only { position: relative; padding: 25px 25px 25px; border-radius: 24px; width: 100%; max-width: 710px; border: 1px solid rgba(255,255,255,.05); box-shadow: 0 40px 80px -20px #000; box-sizing: border-box; overflow: hidden; background: #0B1220; display: flex; flex-direction: column; align-items: center; margin: 20px auto !important; font-family: 'Gabarito', sans-serif; color: #e5e7eb; }
+        #chart-only::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(#0e1726, #070b12); z-index: 0; border-radius: 24px; }
         
-        #chart-only { position: relative; padding: 15px 15px 35px; border-radius: 24px; width: 100%; max-width: 710px; border: 1px solid rgba(0,240,255,.08); box-shadow: 0 30px 60px -15px #000, inset 0 1px 0 rgba(255,255,255,.05); box-sizing: border-box; opacity: .90; overflow: hidden; background: #0B1220; display: flex; flex-direction: column; align-items: center; margin: 20px auto !important; font-family: 'Gabarito', sans-serif; color: #e5e7eb; }
-        #chart-only::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(#0f172a, #020617); z-index: 0; border-radius: 24px; }
-        
+        /* 📈 MODERNISERET HEADER-TABEL */
         .pizza-header-profile-table {
             position: relative;
             z-index: 2;
             width: 100%;
-            max-width: 575px;
-            margin: 15px auto 25px;
+            max-width: 610px;
+            margin: 10px auto 20px;
             background: transparent;
-            border: 1px solid rgba(0, 240, 255, 0.08);
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
             border-collapse: collapse !important;
         }
         
         .pizza-header-profile-table td {
-            padding: 20px 25px !important;
+            padding: 0px !important;
             box-sizing: border-box;
             vertical-align: middle;
         }
-
-        .p-nm { font-size: 27px; font-weight: 900; margin: 0 0 10px; text-transform: uppercase; letter-spacing: -.5px; color: #fff; text-align: left; }
-        .tactic-line { width: 100%; height: 2px; margin-bottom: 12px; display: block; }
         
-        .pizza-meta-subtable {
-            width: auto !important;
-            border-collapse: collapse !important;
+        /* 📈 NY NAVNESTIL */
+        .p-nm { font-size: 28px; font-weight: 900; margin: 0 0 8px; text-transform: uppercase; letter-spacing: -1px; color: #fff; text-align: left; }
+        
+        /* LINJE MED GLOW EFFECT */
+        .tactic-line { width: 100%; height: 3px; margin-bottom: 16px; display: block; border: none; border-radius: 2px; }
+
+        /* NY MODERNE METADATA STRUKTUR */
+        .pizza-meta-container {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-start;
         }
-        .pizza-meta-subtable td {
-            padding: 0 7px !important;
-            font-size: 13px;
+        
+        .meta-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: .5px;
-            color: #fff;
+            color: #94a3b8;
             white-space: nowrap;
+            transition: all 0.2s ease;
         }
-        .pizza-meta-subtable td:first-child { padding-left: 0 !important; }
-        
-        .meta-item-box { display: flex; align-items: center; gap: 6px; }
-        .meta-item-box svg { opacity: .6; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; width: 15px; height: 15px; }
-        .logo-shape { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: rgba(0,240,255,0.1); border-radius: 50%; padding: 2px; box-sizing: border-box; }
-        .club-crest-small { width: 100%; height: 100%; object-fit: contain; }
-        .data-val { color: #94a3b8; font-weight: 600; }
-        .pipe-divider-cell { color: rgba(0,240,255,.2) !important; font-size: 14px; text-align: center; }
 
-        #pizza-svg-element { display: block; margin: -15px auto 0; overflow: visible; max-width: 100%; height: auto; position: relative; z-index: 1; }
-        .grid-circle { fill: none; stroke: rgba(255,255,255,.08); }
-        .grid-line { stroke: rgba(255,255,255,.06); }
-        .ax-lbl { font-size: 13px; fill: #94a3b8; font-weight: 700; letter-spacing: .5px; text-shadow: none; }
+        .meta-pill svg { opacity: .9; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; width: 14px; height: 14px; }
+        .logo-shape { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: rgba(255,255,255,0.02); border-radius: 4px; padding: 1px; box-sizing: border-box; }
+        .club-crest-small { width: 100%; height: 100%; object-fit: contain; }
+        .data-val { color: #ffffff; font-weight: 700; }
+        
+        /* DIAGRAM PLACERING */
+        #pizza-svg-element { display: block; margin: 5px auto 0; overflow: visible; max-width: 100%; height: auto; position: relative; z-index: 1; }
+        
+        .grid-circle { fill: none; stroke: rgba(255, 255, 255, 0.12); stroke-width: 1; }
+        .grid-line { stroke: rgba(255, 255, 255, 0.08); stroke-width: 1; }
+        .ax-lbl { font-size: 12px; fill: #94a3b8; font-weight: 700; letter-spacing: .3px; }
+        
         .slice-b { stroke-width: 1.75; stroke-linejoin: round; }
-        .box-bg-rect { fill: #0B1220 !important; }
-        .tx-b { font-size: 11px; font-weight: 900; fill: inherit !important; }
+        .box-bg-rect { fill: #111827 !important; stroke-width: 1.5 !important; }
+        .tx-b { font-size: 11px; font-weight: 900; }
         
         .pizza-footer-table {
             width: 100% !important;
@@ -137,38 +149,35 @@ document.addEventListener("DOMContentLoaded", () => {
             text-align: center;
             position: relative;
             z-index: 2;
-            margin-top: 5px;
+            margin-top: 15px;
             font-family: 'Gabarito', sans-serif;
         }
-        .pizza-footer-table td { padding: 2px 40px !important; font-size: 11px; font-weight: 400; color: #e5e7eb; letter-spacing: .4px; box-sizing: border-box; }
-        .pizza-footer-table .footer-line-top { opacity: 0.75; }
-        .pizza-footer-table .footer-line-bottom { opacity: 0.45; }
+        .pizza-footer-table td { padding: 2px 40px !important; font-size: 11px; font-weight: 500; color: #64748b; letter-spacing: .4px; box-sizing: border-box; }
+        .pizza-footer-table .footer-line-bottom { opacity: 0.6; font-size: 11px; }
 
         @media (max-width: 1025px) {
-            .pizza-header-profile-table td { padding: 12px 16px !important; }
-            .p-nm { font-size: 18px !important; margin-bottom: 6px !important; }
-            .tactic-line { margin-bottom: 8px !important; }
-            .pizza-meta-subtable td { font-size: 10.5px !important; padding: 0 5px !important; }
-            .meta-item-box svg { width: 12px !important; height: 12px !important; }
+            .p-nm { font-size: 24px !important; margin-bottom: 6px !important; }
+            .tactic-line { margin-bottom: 12px !important; }
+            .meta-pill { font-size: 10px !important; padding: 5px 10px !important; }
+            .meta-pill svg { width: 12px !important; height: 12px !important; }
             .logo-shape { width: 16px !important; height: 16px !important; }
             .ax-lbl { font-size: 11px !important; }
-            .pizza-footer-table td { font-size: 10px !important; padding: 1px 20px !important; }
         }
 
         @media (max-width: 480px) {
-            .pizza-header-profile-table { max-width: 90% !important; margin: 0 auto 10px !important; border-radius: 12px !important; }
-            .pizza-header-profile-table td { padding: 8px 12px !important; }
-            .p-nm { font-size: 11px !important; margin-bottom: 4px !important; letter-spacing: -0.3px !important; }
-            .tactic-line { margin-bottom: 6px !important; }
-            .pizza-meta-subtable td { font-size: 8px !important; padding: 0 4px !important; }
-            .meta-item-box svg { width: 8.5px !important; height: 8.5px !important; stroke-width: 2.2 !important; }
-            .logo-shape { width: 11px !important; height: 11px !important; }
-            .pipe-divider-cell { font-size: 9px !important; }
+            .pizza-header-profile-table { max-width: 100% !important; margin-bottom: 12px !important; }
+            .p-nm { font-size: 18px !important; margin-bottom: 4px !important; letter-spacing: -0.5px !important; }
+            .tactic-line { margin-bottom: 8px !important; height: 2px !important; }
+            .pizza-meta-container { gap: 4px !important; }
+            .meta-pill { font-size: 8.5px !important; padding: 4px 8px !important; border-radius: 6px !important; }
+            .meta-pill svg { width: 10px !important; height: 10px !important; stroke-width: 2.5 !important; }
+            .logo-shape { width: 12px !important; height: 12px !important; }
             .pizza-footer-table td { font-size: 8px !important; }
         }
     `;
     document.head.appendChild(style);
 });
+
 // ==========================================================================
 // PER 90 - PIZZA.JS - DEL 3 AF 7 (FRONTEND VIEW INITIALISERING)
 // ==========================================================================
@@ -243,13 +252,23 @@ async function initPizzaView(container) {
 }
 function buildPizzaVektorChart(data, selectedColor) {
     const svg = $("pizza-svg-element"); if (!svg) return;
-    const CX = 355, CY = 285, MAX_R = 230, total = data.metrics.length, angle = (2 * Math.PI) / total;
-    const catColors = { "Shooting": "#ff007f", "Passing": "#00ffd5", "Possession": "#ffb700", "Defending": "#00ff66" };
     
-    let markup = [57.5, 115, 172.5, 230].map(r => `<circle cx="${CX}" cy="${CY}" r="${r}" class="grid-circle" ${r === 230 ? 'style="stroke:rgba(255,255,255,.08);"' : ''} />`).join('');
+    // 🎯 MIKROSKOPISK JUSTERING FOR AT UNDGÅ CLIPPING
+    // Radius er sat ned fra 255 til 240. Centrum (CX, CY) bevares.
+    const CX = 355, CY = 295, MAX_R = 240, total = data.metrics.length, angle = (2 * Math.PI) / total;
+    
+    const catColors = { 
+        "Shooting": "#e11d48",   
+        "Passing": "#2563eb",    
+        "Possession": "#d97706", 
+        "Defending": "#16a34a"   
+    };
+    
+    // Beregner de fire nye grid-cirkler baseret på den nye max radius (240 / 4 = 60)
+    let markup = [60, 120, 180, 240].map(r => `<circle cx="${CX}" cy="${CY}" r="${r}" class="grid-circle" />`).join('');
 
     data.metrics.forEach((metric, i) => {
-        const rawScore = data.percentiles[i], score = Math.round(rawScore), currentR = (rawScore / 100) * 230;
+        const rawScore = data.percentiles[i], score = Math.round(rawScore), currentR = (rawScore / 100) * MAX_R;
         const sA = (i * angle) - Math.PI / 2, eA = sA + angle, midA = sA + angle / 2;
         const cos = Math.cos(midA), sin = Math.sin(midA);
 
@@ -257,34 +276,33 @@ function buildPizzaVektorChart(data, selectedColor) {
         const c = catColors[cat] || selectedColor;
 
         if (currentR > 0) {
-            markup += `<path d="M ${CX} ${CY} L ${CX + currentR * Math.cos(sA)} ${CY + currentR * Math.sin(sA)} A ${currentR} ${currentR} 0 ${angle > Math.PI ? 1 : 0} 1 ${CX + currentR * Math.cos(eA)} ${CY + currentR * Math.sin(eA)} Z" class="slice-b" fill="${c}26" stroke="${c}" filter="drop-shadow(0 0 6px ${c}26)" />`;
+            markup += `<path d="M ${CX} ${CY} L ${CX + currentR * Math.cos(sA)} ${CY + currentR * Math.sin(sA)} A ${currentR} ${currentR} 0 ${angle > Math.PI ? 1 : 0} 1 ${CX + currentR * Math.cos(eA)} ${CY + currentR * Math.sin(eA)} Z" class="slice-b" fill="${c}" fill-opacity="0.15" stroke="${c}" stroke-width="8" stroke-linejoin="round" />`;
         }
-        markup += `<line x1="${CX}" y1="${CY}" x2="${CX + 230 * Math.cos(sA)}" y2="${CY + 230 * Math.sin(sA)}" class="grid-line" />`;
+
+        markup += `<line x1="${CX}" y1="${CY}" x2="${CX + MAX_R * Math.cos(sA)}" y2="${CY + MAX_R * Math.sin(sA)}" class="grid-line" />`;
         
         const ord = metric.split(" ");
         
-        // 🎯 GEOMETRISK AFSTAND: Placerer teksten i en flot cirkel uden om diagrammet
-        const textX = CX + 262 * cos;
-        const textY = CY + 262 * sin;
+        // 🎯 TEKST-RADIUS ØGET: Sat op til 285 (før 272) for at skubbe titlerne 
+        // væk fra diagrammets yderkant, så de ikke kolliderer med 100-talboksene.
+        const textX = CX + 285 * cos;
+        const textY = CY + 285 * sin;
 
         if (ord.length > 1) {
-            // 🧠 INTELLIGENT COMPACT BREAK
+
             let linje1 = ord[0];
             let linje2 = ord.slice(1).join(" ");
 
             if (ord.length === 3) {
                 const alt1 = ord[0];                             
                 const alt2 = ord.slice(1).join(" ");            
-                
                 const test1 = ord.slice(0, 2).join(" ");        
                 const test2 = ord[2];                           
                 
                 if (Math.max(alt1.length, alt2.length) < Math.max(test1.length, test2.length)) {
-                    linje1 = alt1;
-                    linje2 = alt2;
+                    linje1 = alt1; linje2 = alt2;
                 } else {
-                    linje1 = test1;
-                    linje2 = test2;
+                    linje1 = test1; linje2 = test2;
                 }
             } else if (ord.length > 3) {
                 const midtpunkt = Math.ceil(ord.length / 2);
@@ -292,20 +310,21 @@ function buildPizzaVektorChart(data, selectedColor) {
                 linje2 = ord.slice(midtpunkt).join(" ");
             }
             
-            markup += `<text x="${textX}" y="${textY - 7}" class="ax-lbl" style="font-family: 'Gabarito', sans-serif;" text-anchor="middle" dominant-baseline="middle" fill="#94a3b8">${linje1}</text>`;
-            markup += `<text x="${textX}" y="${textY + 9}" class="ax-lbl" style="font-family: 'Gabarito', sans-serif;" text-anchor="middle" dominant-baseline="middle" fill="#94a3b8">${linje2}</text>`;
+            markup += `<text x="${textX}" y="${textY - 7}" class="ax-lbl" style="font-family: 'Gabarito', sans-serif;" text-anchor="middle" dominant-baseline="middle">${linje1}</text>`;
+            markup += `<text x="${textX}" y="${textY + 9}" class="ax-lbl" style="font-family: 'Gabarito', sans-serif;" text-anchor="middle" dominant-baseline="middle">${linje2}</text>`;
         } else {
-            markup += `<text x="${textX}" y="${textY}" class="ax-lbl" style="font-family: 'Gabarito', sans-serif;" text-anchor="middle" dominant-baseline="middle" fill="#94a3b8">${metric}</text>`;
+            markup += `<text x="${textX}" y="${textY}" class="ax-lbl" style="font-family: 'Gabarito', sans-serif;" text-anchor="middle" dominant-baseline="middle">${metric}</text>`;
         }
 
         if (score > 15) {
-            markup += `<g><rect x="${CX + currentR * cos - 13}" y="${CY + currentR * sin - 7}" width="26" height="14" rx="3" class="box-bg-rect" stroke="${c}" stroke-width="1.5" /><text x="${CX + currentR * cos}" y="${CY + currentR * sin}" class="tx-b" style="font-family: 'Gabarito', sans-serif; fill: ${c} !important;" text-anchor="middle" dominant-baseline="central">${score}</text></g>`;
+            markup += `<g><rect x="${CX + currentR * cos - 13}" y="${CY + currentR * sin - 7}" width="26" height="14" rx="2" class="box-bg-rect" stroke="${c}" stroke-width="1.5" /><text x="${CX + currentR * cos}" y="${CY + currentR * sin}" class="tx-b" style="font-family: 'Gabarito', sans-serif; fill: #ffffff !important;" text-anchor="middle" dominant-baseline="central">${score}</text></g>`;
         }
+
     });
 
-    // 🌟 MULIGHED 1: Mørk center-cirkel med neon-glød i spillerens primære farve
-    svg.innerHTML = markup + `<circle cx="${CX}" cy="${CY}" r="12" fill="#0B1220" stroke="${selectedColor}" stroke-width="2.5" filter="drop-shadow(0 0 5px ${selectedColor})" />`;
+    svg.innerHTML = markup + `<circle cx="${CX}" cy="${CY}" r="10" fill="#0B1220" stroke="#ffffff" stroke-width="2.5" />;`;
 }
+
 
 
 // ==========================================================================
@@ -432,14 +451,15 @@ async function onPizzaPlayerChange() {
     } catch (e) { console.error(e); }
     onPizzaFilterChange();
 }
+
 // ==========================================================================
-// PER 90 - PIZZA.JS - DEL 6 AF 7 (DATAMOTOR & SEMANTISK TABEL-TEMPLATE)
+// PER 90 - PIZZA.JS - DEL 6 AF 7 (DATAMOTOR & SEMANTISK TABEL-TEMPLATE) - DEL 1/3
 // ==========================================================================
 
 function buildCategorizedMetrics() {
     const container = $("checkboxes-container"); if (!container) return;
     const colors = { "Shooting": "#ff007f", "Passing": "#00ffd5", "Possession": "#ffb700", "Defending": "#00ff66" };
-    const defaults = ["Goals", "Assists", "Successful Dribbles", "Tackles Won %"];
+    const defaults = ["Goals", "npxG", "Assists", "xA", "Key Passes", "Successful Dribbles", "Progressive Carries", "Duels Won", "Aerials Won"];
     container.innerHTML = Object.entries(PIZZA_CATEGORIES).map(([cat, metrics]) => {
         const c = colors[cat] || "var(--accent-purple)";
         const body = Object.values(metrics).map(m => {
@@ -449,6 +469,7 @@ function buildCategorizedMetrics() {
         return `<div style="margin-bottom: 12px;"><div style="font-size: 11px; color: ${c}; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid ${c}44; padding-bottom: 4px; margin-bottom: 6px;">${cat}</div><div style="display: flex; flex-direction: column; gap: 6px; padding-left: 4px;">${body}</div></div>`;
     }).join('');
 }
+
 
 async function loadPizzaChartDataWithFilters(playerName, comparePos, metricsList) {
     try {
@@ -462,49 +483,41 @@ async function loadPizzaChartDataWithFilters(playerName, comparePos, metricsList
         
         const chartContainer = $("chart-only"); if (!chartContainer) return;
         const sColor = apiResponse.selected_color || "#00f0ff", leagueVal = apiResponse.league || "N/A";
+// ==========================================================================
+// PER 90 - PIZZA.JS - DEL 6 AF 7 (DATAMOTOR & SEMANTISK TABEL-TEMPLATE) - DEL 2/3
+// ==========================================================================
 
+        chartContainer.style.overflow = "hidden";
+        chartContainer.style.position = "relative";
         chartContainer.innerHTML = `
-            <table class="pizza-header-profile-table">
+            <!-- 🛡️ STORT BAGGRUNDS-VANDMÆRKE I ØVERSTE VENSTRE HJØRNE (Mobil-optimeret) -->
+            ${logoBase64 ? `<img class="pizza-bg-logo" src="${logoBase64}" style="position: absolute; top: 0px; left: -15px; width: 22vw; max-width: 140px; min-width: 90px; height: auto; object-fit: contain; opacity: 0.06; transform: rotate(-15deg); z-index: 1; pointer-events: none;" />` : ''}
+
+            <table class="pizza-header-profile-table" style="position: relative; z-index: 2;">
                 <tr>
                     <td>
                         <h2 class="p-nm">${apiResponse.player_name}</h2>
-                        <svg class="tactic-line" viewBox="0 0 100 2" preserveAspectRatio="none">
-                            <defs>
-                                <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stop-color="${sColor}" stop-opacity="0.6" />
-                                    <stop offset="70%" stop-color="${sColor}" stop-opacity="0.3" />
-                                    <stop offset="100%" stop-color="${sColor}" stop-opacity="0" />
-                                </linearGradient>
-                            </defs>
-                            <rect width="100" height="2" fill="url(#lineGrad)" />
-                        </svg>
-                        
-                        <table class="pizza-meta-subtable">
-                            <tr>
-                                <td>
-                                    <div class="meta-item-box">
-                                        <div class="logo-shape" style="border: 1px solid ${sColor}">
-                                            <img class="club-crest-small" src="${logoBase64}" />
-                                        </div>
-                                        <span class="data-val">${leagueVal}</span>
-                                    </div>
-                                </td>
-                                <td class="pipe-divider-cell">|</td>
-                                <td>
-                                    <div class="meta-item-box">
-                                        <svg viewBox="0 0 24 24" style="stroke: ${sColor}"><path d="M20.38 3.46L16 2a4 4 0 0 0-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l1.08 5.4A2 2 0 0 0 5.3 12.5H7v7a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-7h1.7a2 2 0 0 0 1.94-1.41l1.08-5.4a2 2 0 0 0-1.34-2.23z"/></svg>
-                                        <span class="data-val">${apiResponse.player_pos || 'N/A'}</span>
-                                    </div>
-                                </td>
-                                <td class="pipe-divider-cell">|</td>
-                                <td>
-                                    <div class="meta-item-box">
-                                        <svg viewBox="0 0 24 24" style="stroke: ${sColor}"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                                        <span class="data-val">${apiResponse.mins_played || 0} MIN.</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </table>
+                        <div class="tactic-line" style="background-color: ${sColor}; filter: drop-shadow(0 0 6px ${sColor}88);"></div>
+        
+                        <div class="pizza-meta-container">
+                            <!-- Liga Pill (Nu med ikon i stedet for logo) -->
+                            <div class="meta-pill" style="border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid ${sColor};">
+                                <svg viewBox="0 0 24 24" style="stroke: ${sColor}"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                                <span class="data-val">${leagueVal}</span>
+                            </div>
+                            
+                            <!-- Position Pill -->
+                            <div class="meta-pill" style="border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid ${sColor};">
+                                <svg viewBox="0 0 24 24" style="stroke: ${sColor}"><path d="M4 3h16a1 1 0 0 1 1 1v5a2 2 0 0 1-2 2h-1v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-9H5a2 2 0 0 1-2-2V4a1 1 0 0 1 1-1z"/><path d="M9 3a3 3 0 0 0 6 0"/></svg>
+                                <span class="data-val">${apiResponse.player_pos || 'N/A'}</span>
+                            </div>
+                            
+                            <!-- Minutter Pill -->
+                            <div class="meta-pill" style="border: 1px solid rgba(255,255,255,0.06); border-left: 3px solid ${sColor};">
+                                <svg viewBox="0 0 24 24" style="stroke: ${sColor}"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 15 14"/></svg>
+                                <span class="data-val">${apiResponse.mins_played || 0} MIN.</span>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             </table>
@@ -513,151 +526,129 @@ async function loadPizzaChartDataWithFilters(playerName, comparePos, metricsList
                 <div style="color: #ff007f; font-weight: 700; text-align: center;">CHOOSE AT LEAST 3 METRICS</div>
             </div>
             
-            <svg viewBox="0 0 710 570" id="pizza-svg-element"></svg>
+            <svg viewBox="0 0 710 600" id="pizza-svg-element" style="position: relative; z-index: 2;"></svg>
             
-            <table class="pizza-footer-table">
+            <table class="pizza-footer-table" style="position: relative; z-index: 2;">
                 <tr class="footer-line-top"><td>${apiResponse.player_name}'s percentile rank vs. ${leagueVal} ${CURRENT_SELECTED_POS}s</td></tr>
-                <tr class="footer-line-bottom"><td>Generated via per-90.streamlit.app</td></tr>
+                <tr class="footer-line-bottom"><td>Generated via per90.vercel.app</td></tr>
             </table>
         `;
         
         buildPizzaVektorChart(apiResponse, sColor);
     } catch (e) { console.error("Interface fejl:", e); }
 }
-// ==========================================================================
-// PER 90 - PIZZA.JS - DEL 7 AF 7 (PERFEKT GEOMETRISK CENTRERET DOWNLOAD MOTOR)
-// ==========================================================================
 
 function downloadPNG() {
     const originalEl = $("chart-only"); if (!originalEl) return;
     
-    // Opretter en totalt isoleret boks låst på 710px i bredden med flex-layout
     const hiddenContainer = document.createElement("div");
     Object.assign(hiddenContainer.style, {
-        position: "absolute",
-        left: "-9999px",
-        top: "-9999px",
-        width: "710px",
-        minWidth: "710px",
-        maxWidth: "710px",
-        height: "auto",
-        overflow: "visible"
+        position: "absolute", left: "-9999px", top: "-9999px",
+        width: "710px", minWidth: "710px", maxWidth: "710px", height: "auto", overflow: "visible"
     });
     
     const clone = originalEl.cloneNode(true);
     clone.id = "pizza-download-clone";
     
-    // Tvinger en urokkelig PC-struktur og fjerner elastiske enheds-højder
     Object.assign(clone.style, {
-        width: "710px",
-        minWidth: "710px",
-        maxWidth: "710px",
-        height: "auto",
-        minHeight: "auto",
-        maxHeight: "none",
-        padding: "30px 30px 40px 30px",
-        background: "#0B1220",
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        opacity: "1"
+        width: "710px", minWidth: "710px", maxWidth: "710px", height: "auto", minHeight: "auto", maxHeight: "none",
+        padding: "25px 25px 25px 25px", background: "#0B1220", boxSizing: "border-box",
+        display: "flex", flexDirection: "column", alignItems: "center", opacity: "1"
     });
     
     hiddenContainer.appendChild(clone);
     
     const overrideStyle = document.createElement("style");
     overrideStyle.innerHTML = `
-        /* Nulstiller alle mobile mediefelt-optimeringer totalt på download-billedet */
         #pizza-download-clone::before { 
-            content: ""; 
-            position: absolute; 
-            top: 0; left: 0; right: 0; bottom: 0; 
-            background: linear-gradient(180deg, #0f172a 0%, #020617 100%) !important; 
-            z-index: 0; 
-            border-radius: 24px; 
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+            background: linear-gradient(180deg, #0f172a 0%, #020617 100%) !important; z-index: 0; border-radius: 24px; 
+        }
+
+        /* Låser logoet fast til øverste venstre hjørne på PC-download */
+        #pizza-download-clone .pizza-bg-logo {
+            position: absolute !important;
+            top: 5px !important;
+            left: -15px !important;
+            width: 140px !important;
+            height: 140px !important;
+            opacity: 0.06 !important;
+            transform: rotate(-15deg) !important;
+            z-index: 1 !important;
+            right: auto !important;
         }
         
         #pizza-download-clone .pizza-header-profile-table {
-            max-width: 575px !important; 
-            margin: 15px auto 25px !important; 
-            border-radius: 16px !important; 
-            display: table !important; 
-            width: 100% !important; 
-            border: 1px solid rgba(0, 240, 255, 0.08) !important;
-            border-collapse: collapse !important;
+            max-width: 610px !important; margin: 10px auto 20px !important; display: table !important; 
+            width: 100% !important; border-collapse: collapse !important; position: relative !important; z-index: 2 !important;
         }
-        #pizza-download-clone .pizza-header-profile-table td { 
-            padding: 20px 25px !important; 
-        }
-        
+        #pizza-download-clone .pizza-header-profile-table td { padding: 0px !important; }
         #pizza-download-clone .p-nm { 
-            font-size: 27px !important; 
-            margin-bottom: 10px !important; 
-            color: #ffffff !important; 
-            -webkit-text-fill-color: #ffffff !important; 
-            font-weight: 900 !important;
-            text-align: left !important;
+            font-size: 28px !important; margin-bottom: 8px !important; color: #ffffff !important; 
+            -webkit-text-fill-color: #ffffff !important; font-weight: 900 !important; text-align: left !important; letter-spacing: -1px !important;
         }
         #pizza-download-clone .tactic-line { 
-            margin-bottom: 12px !important; 
-            width: 100% !important; 
-            display: block !important; 
-            height: 2px !important;
+            margin-bottom: 16px !important; width: 100% !important; display: block !important; height: 3px !important; border-radius: 2px !important;
         }
-        #pizza-download-clone .pizza-meta-subtable { 
-            display: table !important; 
-            width: auto !important; 
-            border-collapse: collapse !important;
+
+        #pizza-download-clone .pizza-meta-container {
+            display: flex !important; 
+            align-items: center !important; 
+            flex-direction: row !important; 
+            flex-wrap: nowrap !important;
+            justify-content: flex-start !important;
+            gap: 0px !important; 
         }
-        #pizza-download-clone .pizza-meta-subtable td { 
-            font-size: 13px !important; 
-            padding: 0 7px !important; 
+
+        #pizza-download-clone .meta-pill {
+            display: inline-flex !important; 
+            align-items: center !important; 
+            justify-content: center !important;
+            margin-right: 8px !important; 
+            background: rgba(255, 255, 255, 0.03) !important;
+            padding: 0px 12px !important; 
+            height: 28px !important;
+            box-sizing: border-box !important;
+            border-radius: 8px !important; font-size: 11px !important; font-weight: 700 !important;
+            text-transform: uppercase !important; letter-spacing: .5px !important; color: #94a3b8 !important; white-space: nowrap !important;
+        }
+        #pizza-download-clone .meta-pill:last-child {
+            margin-right: 0px !important;
+        }
+
+        /* 🎯 FIX: margin-right sat ned til 3px for at bringe teksten tættere på ikonet */
+        #pizza-download-clone .meta-pill svg { 
+            opacity: .9 !important; 
+            width: 14px !important; 
+            min-width: 14px !important;
+            max-width: 14px !important;
+            height: 14px !important; 
+            stroke-width: 2.2 !important; 
+            display: inline-block !important;
+            margin-right: 1px !important;
+            margin-top: 0px !important;
+        }
+        
+        #pizza-download-clone .meta-pill .data-val { 
             color: #ffffff !important; 
-        }
-        #pizza-download-clone .meta-item-box svg { 
-            width: 15px !important; 
-            height: 15px !important; 
-            stroke-width: 2.5 !important; 
-        }
-        #pizza-download-clone .logo-shape { 
-            width: 22px !important; 
-            height: 22px !important; 
-        }
-        #pizza-download-clone .pipe-divider-cell { 
-            font-size: 14px !important; 
+            font-weight: 700 !important; 
+            display: inline-block !important;
+            line-height: normal !important; 
+            height: auto !important;
+            padding-bottom: 2px !important; 
         }
         
-        /* 🎯 ABSOLUT MIDTPUNKT: Finjusteret til -4px, hvilket placerer cirklen millimeter-præcist i centrum */
         #pizza-download-clone #pizza-svg-element { 
-            display: block !important; 
-            margin: -5px auto 15px auto !important; 
-            width: 620px !important; 
-            height: 465px !important; 
-            max-width: 620px !important;
-            max-height: 465px !important;
-            transform: translateX(-4px) !important;
-            overflow: visible !important;
+            display: block !important; margin: 5px auto 0 auto !important; width: 100% !important; max-width: 100% !important;
+            height: auto !important; max-height: none !important; overflow: visible !important; position: relative !important; z-index: 2 !important;
         }
-        #pizza-download-clone .ax-lbl { 
-            font-size: 13px !important; 
-            fill: #94a3b8 !important; 
-        }
-        
+        #pizza-download-clone .ax-lbl { font-size: 12px !important; fill: #94a3b8 !important; }
         #pizza-download-clone .pizza-footer-table { 
-            display: table !important; 
-            width: 100% !important; 
-            margin-top: 15px !important; 
-            margin-bottom: 5px !important;
-            border-collapse: collapse !important;
+            display: table !important; width: 100% !important; margin-top: 15px !important; margin-bottom: 5px !important; border-collapse: collapse !important; position: relative !important; z-index: 2 !important;
         }
-        #pizza-download-clone .pizza-footer-table td { 
-            font-size: 11px !important; 
-            padding: 2px 40px !important; 
-            color: #e5e7eb !important; 
-        }
-        #pizza-download-clone .pizza-footer-table .footer-line-top { opacity: 0.75 !important; }
-        #pizza-download-clone .pizza-footer-table .footer-line-bottom { opacity: 0.45 !important; }
+        #pizza-download-clone .pizza-footer-table td { font-size: 11px !important; padding: 2px 40px !important; color: #64748b !important; }
+        #pizza-download-clone .pizza-footer-table .footer-line-top { opacity: 1 !important; }
+        #pizza-download-clone .pizza-footer-table .footer-line-bottom { opacity: 0.6 !important; }
     `;
     
     document.body.appendChild(hiddenContainer);
@@ -665,16 +656,10 @@ function downloadPNG() {
     
     document.fonts.ready.then(() => {
         html2canvas(clone, { 
-            scale: 4, 
-            pixelRatio: 1, 
-            width: 710,
-            windowWidth: 710,
-            backgroundColor: null, 
-            useCORS: true, 
-            logging: false 
+            scale: 4, pixelRatio: 1, width: 710, windowWidth: 710, backgroundColor: null, useCORS: true, logging: false 
         }).then(canvas => { 
             const link = document.createElement("a"); 
-            link.download = `report_${CURRENT_SELECTED_PLAYER ? CURRENT_SELECTED_PLAYER.toLowerCase().replace(/ /g, "_") : "chart"}.png`; 
+            link.download = "pizza_chart.png"; 
             link.href = canvas.toDataURL("image/png"); 
             link.click(); 
             hiddenContainer.remove(); overrideStyle.remove();
@@ -685,6 +670,7 @@ function downloadPNG() {
     });
 }
 
+
 window.loadPizzaChartData = function(playerName) {
     if (playerName && CURRENT_SELECTED_PLAYER !== playerName) selectCustomItem('player', playerName); else onPizzaFilterChange();
 };
@@ -694,3 +680,5 @@ document.addEventListener("click", e => {
     if (!e.target.closest('#custom-pos-wrapper')) { const pos = $("custom-pos-options"); if(pos) pos.style.display = "none"; }
     if (!e.target.closest('.multiselect')) { const cb = $("checkboxes-container"); if(cb) cb.style.display = "none"; }
 });
+
+

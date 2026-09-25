@@ -155,7 +155,7 @@ function buildAndAppendFiltersDrawerHTML() {
         return `<label class="table-drawer-checkbox-label" style="opacity: ${checked ? 1 : 0.4};"><input type="checkbox" value="${pos}" ${checked ? "checked" : ""} onchange="handleFiltersCheckboxToggle(this, 'positions')"> ${pos}</label>`;
     }).join('');
 
-    let slidersHTML = `<div class="drawer-metrics-section"><div class="drawer-section-title">Performance Metrics Activation</div>`;
+    let slidersHTML = `<div class="drawer-metrics-section"><div class="drawer-section-title">Metrics</div>`;
     Object.keys(FILTERS_METRIC_SLIDERS).forEach(m => {
         const s = FILTERS_METRIC_SLIDERS[m], step = s.max <= 2 ? "0.01" : (s.max <= 100 ? "0.1" : "1"), cid = m.replace(/\s+/g, '');
         slidersHTML += `
