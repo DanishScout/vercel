@@ -253,3 +253,10 @@ if os.path.exists(FRONTEND_DIR):
     app.mount("/", StaticFiles(directory=FRONTEND_DIR), name="frontend")
 else:
     print(f"ADVARSEL: Frontend-mappen blev ikke fundet på stien: {FRONTEND_DIR}")
+
+# HER INDSÆTTER DU KODEN:
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("app:app", host="0.0.0.0", port=port)
