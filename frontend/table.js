@@ -277,46 +277,180 @@ function buildAndAppendTableDrawerHTML() {
 
 async function loadTableAPIDataFeed() {
     try {
-        // Byg query-parametre baseret på din globale TABLE_FILTERS tilstand
-        let url = `${API_BASE_URL}/api/table-data?stat_type=${encodeURIComponent(TABLE_STAT_TYPE)}&metric=${encodeURIComponent(TABLE_SELECTED_METRIC)}`;
-        
-        if (TABLE_FILTERS.leagues.length > 0) {
-            TABLE_FILTERS.leagues.forEach(l => url += `&leagues=${encodeURIComponent(l)}`);
-        }
-        if (TABLE_FILTERS.nationalities.length > 0) {
-            TABLE_FILTERS.nationalities.forEach(n => url += `&nationalities=${encodeURIComponent(n)}`);
-        }
-        if (TABLE_FILTERS.positions.length > 0) {
-            TABLE_FILTERS.positions.forEach(p => url += `&positions=${encodeURIComponent(p)}`);
-        }
-        
-        url += `&min_age=${TABLE_FILTERS.minAge}&max_age=${TABLE_FILTERS.maxAge}`;
-        url += `&min_mins=${TABLE_FILTERS.minMins}&max_mins=${TABLE_FILTERS.maxMins}`;
-
-        const res = await fetch(url);
+        const res = await fetch(`${API_BASE_URL}/api/table-data?stat_type=${encodeURIComponent(TABLE_STAT_TYPE)}`);
         if (res.ok) {
             TABLE_GLOBAL_DATA = await res.json();
-            
-            // Første gang data hentes indlæses draweren, hvis den ikke er bygget
-            if (!document.querySelector('.table-filter-drawer')) {
-                buildAndAppendTableDrawerHTML();
+            const list = TABLE_GLOBAL_DATA.players;
+
+            if (list.length > 0) {
+                const ages = list.map(p => p.age).filter(a => a > 0);
+                const mins = list.map(p => p.mins_played).filter(m => m > 0);
+                TABLE_FILTERS.minAge = Math.min(...ages); TABLE_FILTERS.maxAge = Math.max(...ages);
+                TABLE_FILTERS.minMins = Math.min(...mins); TABLE_FILTERS.maxMins = Math.max(...mins);
             }
+
+            buildAndAppendTableDrawerHTML();
             buildTableLeaderboardEngine();
         }
     } catch (e) { console.error("Tabel API fejl:", e); }
 }
 
-// Opdater buildTableLeaderboardEngine() til at tegne logoer direkte fra svar-objektet uden sekundære fetches:
+async function handleTableConfigChange() {
+    const metricSelect = $t("tb-opt-metric"), typeSelect = $t("tb-opt-stat-type");
+    if (!metricSelect || !typeSelect) return;
+    const nytType = typeSelect.value; TABLE_SELECTED_METRIC = metricSelect.value;
+
+    if (nytType !== TABLE_STAT_TYPE) {
+        TABLE_STAT_TYPE = nytType;
+        await loadTableAPIDataFeed();
+    } else {
+        buildTableLeaderboardEngine();
+    }
+}
+
+function handleTableFilterInputChange() {
+    if (!$t("tb-filt-min-age")) return;
+    TABLE_FILTERS.minAge = parseInt($t("tb-filt-min-age").value) || 0;
+    TABLE_FILTERS.maxAge = parseInt($t("tb-filt-max-age").value) || 100;
+    TABLE_FILTERS.minMins = parseInt($t("tb-filt-min-mins").value) || 0;
+    TABLE_FILTERS.maxMins = parseInt($t("tb-filt-max-mins").value) || 99999;
+    buildTableLeaderboardEngine();
+}
+
+// 🎯 KORRIGERET CHECKBOX TOGGLE TIL TABLE.JS MED ALL-LOGIK OG OPERATIV OPACITY
+function handleTableCheckboxToggle(cb, key) {
+    const val = cb.value;
+
+    if (val === "ALL") {
+        TABLE_FILTERS[key] = [];
+    } else {
+        if (cb.checked) {
+            if (!TABLE_FILTERS[key].includes(val)) TABLE_FILTERS[key].push(val);
+        } else {
+            TABLE_FILTERS[key] = TABLE_FILTERS[key].filter(v => v !== val);
+        }
+    }
+
+    // Sætter den visuelle opacity øjeblikkeligt ved klik
+    cb.parentElement.style.opacity = cb.checked ? '1' : '0.4';
+
+    // Kalder live-motoren for at opdatere de andre bokse uden genbygning af hele draweren
+    updateDynamicTableDropdownsOnly();
+    buildTableLeaderboardEngine();
+}
+
+// 🎯 NY GLOBAL RESET-FUNKTION TIL TABLE.JS
+function resetAllTableFilters() {
+    const list = TABLE_GLOBAL_DATA.players;
+    let absoluteMinAge = 0, absoluteMaxAge = 100;
+    let absoluteMinMins = 0, absoluteMaxMins = 99999;
+
+    if (list && list.length > 0) {
+        const ages = list.map(p => p.age).filter(a => a > 0);
+        const mins = list.map(p => p.mins_played).filter(m => m > 0);
+        if (ages.length) { absoluteMinAge = Math.min(...ages); absoluteMaxAge = Math.max(...ages); }
+        if (mins.length) { absoluteMinMins = Math.min(...mins); absoluteMaxMins = Math.max(...mins); }
+    }
+
+    // Gendanner standardtilstande (Tomme arrays [] betyder Vis Alle)
+    TABLE_FILTERS = {
+        leagues: [],
+        nationalities: [],
+        positions: [],
+        minAge: absoluteMinAge,
+        maxAge: absoluteMaxAge,
+        minMins: absoluteMinMins,
+        maxMins: absoluteMaxMins
+    };
+
+    // Opdaterer live elementerne uden fuld genbygning, så vi undgår sløret skærm
+    updateDynamicTableDropdownsOnly();
+    buildTableLeaderboardEngine();
+    
+    // Synkroniserer input-felterne i draweren visuelt, så tallene nulstilles med det samme
+    if ($t("tb-filt-min-age")) $t("tb-filt-min-age").value = TABLE_FILTERS.minAge;
+    if ($t("tb-filt-max-age")) $t("tb-filt-max-age").value = TABLE_FILTERS.maxAge;
+    if ($t("tb-filt-min-mins")) $t("tb-filt-min-mins").value = TABLE_FILTERS.minMins;
+    if ($t("tb-filt-max-mins")) $t("tb-filt-max-mins").value = TABLE_FILTERS.maxMins;
+}
+
+// ==========================================================================
+// PER 90 - TABLE.JS - LIVE-OPDATERING AF INDHOLD (DEL AF DEL 4)
+// ==========================================================================
+
+// 🎯 DYNAMISK LIVE-OPDATERING: Genbygger udelukkende HTML'en inde i boksene uden at lukke draweren
+function updateDynamicTableDropdownsOnly() {
+    if (!TABLE_GLOBAL_DATA || !TABLE_GLOBAL_DATA.players) return;
+    
+    const list = TABLE_GLOBAL_DATA.players;
+    const leaguesBox = $t("tb-container-leagues");
+    const natBox = $t("tb-container-nationalities");
+    const posBox = $t("tb-container-positions");
+    
+    // 1. Opdater Liga-tjekbokse live baseret på om arrayet er tomt (ALL)
+    if (leaguesBox) {
+        const leagues = [...new Set(list.map(p => p.league).filter(Boolean).sort())];
+        const isAllChecked = TABLE_FILTERS.leagues.length === 0;
+        let html = `<label class="table-drawer-checkbox-label" style="opacity: ${isAllChecked ? 1 : 0.4}; font-weight: bold; color: var(--accent-purple);"><input type="checkbox" value="ALL" ${isAllChecked ? "checked" : ""} onchange="handleTableCheckboxToggle(this, 'leagues')" style="accent-color: var(--accent-purple);"> [ALLE LIGAER]</label>`;
+        html += leagues.map(l => {
+            const checked = TABLE_FILTERS.leagues.includes(l);
+            return `<label class="table-drawer-checkbox-label" style="opacity: ${checked ? 1 : 0.4};"><input type="checkbox" value="${l}" ${checked ? "checked" : ""} onchange="handleTableCheckboxToggle(this, 'leagues')" style="accent-color: var(--accent-purple);"> ${l}</label>`;
+        }).join('');
+        leaguesBox.innerHTML = html;
+    }
+
+    // 2. Opdater Nationalitet-tjekbokse live baseret på om arrayet er tomt (ALL)
+    if (natBox) {
+        const nationalities = [...new Set(list.map(p => p.nationality).filter(Boolean).sort())];
+        const isAllChecked = TABLE_FILTERS.nationalities.length === 0;
+        let html = `<label class="table-drawer-checkbox-label" style="opacity: ${isAllChecked ? 1 : 0.4}; font-weight: bold; color: var(--accent-purple);"><input type="checkbox" value="ALL" ${isAllChecked ? "checked" : ""} onchange="handleTableCheckboxToggle(this, 'nationalities')" style="accent-color: var(--accent-purple);"> [ALLE NATIONALITETER]</label>`;
+        html += nationalities.map(n => {
+            const checked = TABLE_FILTERS.nationalities.includes(n);
+            return `<label class="table-drawer-checkbox-label" style="opacity: ${checked ? 1 : 0.4};"><input type="checkbox" value="${n}" ${checked ? "checked" : ""} onchange="handleTableCheckboxToggle(this, 'nationalities')" style="accent-color: var(--accent-purple);"> ${n}</label>`;
+        }).join('');
+        natBox.innerHTML = html;
+    }
+    
+    // 3. Opdater Position-tjekbokse live baseret på om arrayet er tomt (ALL)
+    if (posBox) {
+        const positions = [...new Set(list.map(p => p.position).filter(Boolean).sort())];
+        const isAllChecked = TABLE_FILTERS.positions.length === 0;
+        let html = `<label class="table-drawer-checkbox-label" style="opacity: ${isAllChecked ? 1 : 0.4}; font-weight: bold; color: var(--accent-purple);"><input type="checkbox" value="ALL" ${isAllChecked ? "checked" : ""} onchange="handleTableCheckboxToggle(this, 'positions')" style="accent-color: var(--accent-purple);"> [ALLE POSITIONER]</label>`;
+        html += positions.map(pos => {
+            const checked = TABLE_FILTERS.positions.includes(pos);
+            return `<label class="table-drawer-checkbox-label" style="opacity: ${checked ? 1 : 0.4};"><input type="checkbox" value="${pos}" ${checked ? "checked" : ""} onchange="handleTableCheckboxToggle(this, 'positions')" style="accent-color: var(--accent-purple);"> ${pos}</label>`;
+        }).join('');
+        posBox.innerHTML = html;
+    }
+}
+
+// ==========================================================================
+// PER 90 - TABLE.JS - DEL 5 AF 6 (TABEL-DATAMOTOR & LOGO LOGIK)
+// ==========================================================================
+
 async function buildTableLeaderboardEngine() {
     const container = $t("table-capture-target-area"); if (!container || !TABLE_GLOBAL_DATA) return;
+    
+    // 🎯 NULSTILLER CONTAINEREN (Fjerner automatisk #table-initial-spinner)
     container.innerHTML = "";
 
-    const top10 = TABLE_GLOBAL_DATA.players; // Backenden har ALLEREDE fundet top 10 og filtreret!
+    const filtered = TABLE_GLOBAL_DATA.players.filter(p => {
+        if (TABLE_FILTERS.leagues.length > 0 && !TABLE_FILTERS.leagues.includes(p.league)) return false;
+        if (TABLE_FILTERS.nationalities.length > 0 && !TABLE_FILTERS.nationalities.includes(p.nationality)) return false;
+        if (TABLE_FILTERS.positions.length > 0 && !TABLE_FILTERS.positions.includes(p.position)) return false;
+        if (p.age < TABLE_FILTERS.minAge || p.age > TABLE_FILTERS.maxAge) return false;
+        if (p.mins_played < TABLE_FILTERS.minMins || p.mins_played > TABLE_FILTERS.maxMins) return false;
+        return true;
+    });
 
-    if (top10.length === 0) {
+    if (filtered.length === 0) {
         container.innerHTML = `<div style="text-align:center; padding:50px; color:#64748b; font-weight:700;">NO MATCHES</div>`;
         return;
     }
+
+    const top10 = filtered
+        .sort((a, b) => (b.metrics[TABLE_SELECTED_METRIC] || 0) - (a.metrics[TABLE_SELECTED_METRIC] || 0))
+        .slice(0, 10);
 
     const highestScore = top10.length > 0 ? (top10[0].metrics[TABLE_SELECTED_METRIC] || 1) : 1;
 
@@ -339,17 +473,14 @@ async function buildTableLeaderboardEngine() {
     markup += top10.map((p, idx) => {
         const val = p.metrics[TABLE_SELECTED_METRIC] || 0;
         const barWidthPct = highestScore > 0 ? (val / highestScore) * 100 : 0;
-        
-        // Hent logoet som serveren leverede direkte i Base64-format
-        const logoSrc = p.logo_base64 ? p.logo_base64 : "data:image/svg+xml;utf8,<svg xmlns=%22http://w3.org width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23475569%22 stroke-width=%222%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/></svg>";
-        const logoClass = p.logo_base64 ? "table-row-crest logo-loaded" : "table-row-crest";
+        const imgId = `tb-crest-${idx}-${p.player_name.replace(/[^a-zA-Z0-9]/g, '')}`;
 
         return `
                 <tr>
                     <td class="col-rank font-rank">#${idx + 1}</td>
                     <td class="col-logo">
                         <div class="table-row-logo-box">
-                            <img class="${logoClass}" src="${logoSrc}" style="opacity:1;" />
+                            <img id="${imgId}" class="table-row-crest" src="data:image/svg+xml;utf8,<svg xmlns=%22http://w3.org width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23475569%22 stroke-width=%222%22><circle cx=%2212%22 cy=%2212%22 r=%2210%22/></svg>'" />
                         </div>
                     </td>
                     <td class="col-player">
@@ -399,6 +530,9 @@ async function buildTableLeaderboardEngine() {
     });
 }
 
+// ==========================================================================
+// PER 90 - TABLE.JS - DEL 6 AF 6 (ISOLERET MASTER-CLONE DOWNLOAD MOTOR)
+// ==========================================================================
 
 // ==========================================================================
 // PER 90 - TABLE.JS - DEL 6 AF 6 (ISOLERET MASTER-CLONE DOWNLOAD MOTOR)
@@ -490,3 +624,4 @@ function downloadTablePNG() {
 document.addEventListener("click", e => {
     if (!e.target.closest('#table-player-wrapper')) { const p = $t("table-player-options"); if(p) p.style.display = "none"; }
 });
+
