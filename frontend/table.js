@@ -308,7 +308,7 @@ async function loadTableAPIDataFeed() {
 
 // Opdater buildTableLeaderboardEngine() til at tegne logoer direkte fra svar-objektet uden sekundære fetches:
 async function buildTableLeaderboardEngine() {
-    const container = \$t("table-capture-target-area"); if (!container || !TABLE_GLOBAL_DATA) return;
+    const container = $t("table-capture-target-area"); if (!container || !TABLE_GLOBAL_DATA) return;
     container.innerHTML = "";
 
     const top10 = TABLE_GLOBAL_DATA.players; // Backenden har ALLEREDE fundet top 10 og filtreret!
