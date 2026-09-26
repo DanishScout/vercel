@@ -1,75 +1,47 @@
+# ==========================================================================
+# PER 90 - TABLE.PY (API ROUTER TIL DATATABEL MED PER 90 & TOTAL SKIFTER)
+# ==========================================================================
 from fastapi import APIRouter, HTTPException, Query
 import pandas as pd
-import requests
-import base64
-from io import BytesIO
-from PIL import Image
-from typing import List, Optional
-from concurrent.futures import ThreadPoolExecutor
+from typing import List, Dict, Any
 
 router = APIRouter(prefix="/api", tags=["table"])
 
-# Lynhurtig logo-fetcher fra din Streamlit-logik
-def fetch_logo_base64(team_id: str) -> str:
-    if not team_id or team_id in ["nan", "None", ""]:
-        return ""
-    try:
-        url = f"https://opta.net{team_id}"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        r = requests.get(url, headers=headers, timeout=3)
-        r.raise_for_status()
-        
-        img = Image.open(BytesIO(r.content)).convert("RGBA")
-        buffer = BytesIO()
-        img.save(buffer, format="PNG")
-        return "data:image/png;base64 scroll," + base64.b64encode(buffer.getvalue()).decode()
-    except:
-        return ""
-
 @router.get("/table-data")
 def get_scouting_table_data(
-    stat_type: str = Query("Per 90", description="Per 90 eller Total"),
-    metric: str = Query("Goals", description="Den primære metrik"),
-    secondary_metric: str = Query("None", description="Valgfri sekundær metrik"),
-    leagues: Optional[List[str]] = Query(None),
-    nationalities: Optional[List[str]] = Query(None),
-    positions: Optional[List[str]] = Query(None),
-    min_age: int = Query(0),
-    max_age: int = Query(100),
-    min_mins: int = Query(0),
-    max_mins: int = Query(99999)
+    stat_type: str = Query("Per 90", description="Vælg mellem 'Per 90' eller 'Total'")
 ):
     from app import GLOBAL_DATASET
     if GLOBAL_DATASET is None or GLOBAL_DATASET.empty:
-        raise HTTPException(status_code=500, detail="Datamotoren er tom.")
+        raise HTTPException(status_code=500, detail="Datamotoren er tom eller ikke indlæst.")
 
+    # 1. 🎯 SUFFIX LOGIK EN-TIL-EN FRA DINE ANDRE DIAGRAMMER 🎯
     suffix = "_p90" if stat_type == "Per 90" else "_Total"
+    
+    # Lokalt udtræk af datasættet, så vi beskytter din app.py master-data
     df = GLOBAL_DATASET.copy()
 
     try:
-        # 1. Beregn de dynamiske formel-kolonner (Fra din Streamlit version)
-        df[f'G/A{suffix}'] = df.get(f'total goals{suffix}', 0) + df.get(f'total assists{suffix}', 0)
-        df[f'Progressive Actions{suffix}'] = df.get(f'progressive_passes{suffix}', 0) + df.get(f'Total Carries{suffix}', 0)
-        df[f'npxG+xA{suffix}'] = df.get(f'xG{suffix}', 0) + df.get(f'xA{suffix}', 0)
 
-        # Metrik mapping ordbog
         custom_titles = {
+            #shot
+            f"G/A{suffix}": "G+A",
+            f"npxG + xA{suffix}": "npxG + xA",
             f"total goals{suffix}": "Goals",
-            f"G/A{suffix}": "G/A",
             f"xG{suffix}": "npxG",
-            f"npxG+xA{suffix}": "npxG+xA",
             f"total ontarget attempt{suffix}": "Shots On Target",
             f"attempt_success_pct{suffix}": "On Target %",
             f"CreatedOwnShot{suffix}": "Created Own Shot",
             f"total attempt{suffix}": "Total Shots",
             f"total attempts obox{suffix}": "Shots Outside Box",
             f"total attempts ibox{suffix}": "Shots Inside Box",
+    
+            #pass
             f"total assists{suffix}": "Assists",
             f"xA{suffix}": "xA",
             f"total att assist{suffix}": "Key Passes",
             f"xT_pass{suffix}": "xT via Live Passes",
-            f"progressive_passes{suffix}": "Progressive Passes",
-            f"Progressive Actions{suffix}": "Progressive Actions",
+            f"progressive_passes{suffix}": "Progressive Passes",     
             f"passes_into_final_third{suffix}": "Passes Into Final 3rd",
             f"forward_passes{suffix}": "Forward Passes",
             f"total accurate fwd zone pass{suffix}": "Passes in Opp. Half",
@@ -80,6 +52,9 @@ def get_scouting_table_data(
             f"pass_success_pct{suffix}": "Pass Accuracy %",
             f"long_balls_success_pct{suffix}": "Long Ball Accuracy %",
             f"cross_success_pct{suffix}": "Cross Accuracy %",
+    
+            #poss
+            f"Progressive Actions{suffix}": "Progressive Actions",
             f"total won contest{suffix}": "Successful Dribbles",
             f"total contest{suffix}": "Dribble Attempts",
             f"dribble_success_pct{suffix}": "Dribble Success %",
@@ -88,6 +63,8 @@ def get_scouting_table_data(
             f"Total Final Third Carries{suffix}": "Carries Into Final ⅓",
             f"total touches in opposition box{suffix}": "Touches In Opp. Box",
             f"total was fouled{suffix}": "Fouls Drawn",
+        
+            # Defending metrics
             f"tackle_success_pct{suffix}": "Tackles Won %",
             f"aerial_success_pct{suffix}": "Aerials Won %",
             f"duel_success_pct{suffix}": "Duels Won %",
@@ -98,67 +75,55 @@ def get_scouting_table_data(
             f"total blocked scoring att{suffix}": "Blocked Shots",
             f"total interception{suffix}": "Interceptions",
             f"Ball Recoveries{suffix}": "Ball Recoveries"
+    
         }
 
-        # Omdøb CSV kolonner til pæne navne for nemmere filtrering
-        columns_to_rename = {k: v for k, v in custom_titles.items() if k in df.columns}
-        df = df.rename(columns=columns_to_rename)
+        # Dynamisk opspuring af positionskolonnen i dit CSV-ark
+        pos_col = 'Pos.' if 'Pos.' in df.columns else ('Position' if 'Position' in df.columns else 'Position')
 
-        pos_col = 'Pos.' if 'Pos.' in df.columns else 'Position'
-        
-        # 2. SERVER-SIDE FILTRERING (Lynhurtigt i RAM)
-        if leagues:
-            df = df[df['League'].isin(leagues)]
-        if nationalities:
-            df = df[df['Nationality'].isin(nationalities)]
-        if positions:
-            df = df[df[pos_col].isin(positions)]
-
-        # Alder og minutter
-        df = df[(df['Age'] >= min_age) & (df['Age'] <= max_age)]
-        mins_key = 'total mins played' if 'total mins played' in df.columns else 'Mins'
-        df = df[(df[mins_key] >= min_mins) & (df[mins_key] <= max_max_mins)]
-
-        if df.empty:
-            return {"stat_type": stat_type, "table_headers": list(custom_titles.values()), "players": []}
-
-        # 3. SORTERING & TOP 10
-        primary_col = metric
-        if primary_col not in df.columns:
-            primary_col = "Goals"
-
-        top10_df = df.sort_values(by=primary_col, ascending=False).head(10)
-
-        # 4. TRÅDET LOGO-FETCH FOR KUN DE 10 SPILLERE
-        team_ids = top10_df['contestantId'].astype(str).tolist()
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            base64_logos = list(executor.map(fetch_logo_base64, team_ids))
-
-        # 5. PAK ROW DATA
+        # 3. LOOP IGENNEM CSV-ARKET OG GENERER ROW-DATA TIL SCUTING TABELLEN
         rows_list = []
-        for idx, (_, row) in enumerate(top10_df.iterrows()):
-            player_metrics = {}
-            for pretty_name in custom_titles.values():
-                val = row.get(pretty_name, 0.0)
-                player_metrics[pretty_name] = float(val) if not pd.isna(val) else 0.0
+        for _, row in df.iterrows():
+            if pd.isna(row.get('Player Name')):
+                continue
 
+            # Vi pakker metrikkerne for rækken ud med de pæne overskriftsnavne
+            player_metrics = {}
+            for csv_col, pretty_name in custom_titles.items():
+                if csv_col in df.columns:
+                    val = row[csv_col]
+                    player_metrics[pretty_name] = float(val) if not pd.isna(val) else 0.0
+                else:
+                    player_metrics[pretty_name] = 0.0
+
+            # Uddrag og rens spilletid (Minutter)
+            extracted_mins = row.get('total mins played', row.get('Mins', 0))
+            mins_played = int(extracted_mins) if not pd.isna(extracted_mins) else 0
+
+            # Uddrag og rens nationalitet
+            nationality = str(row.get('Nationality', 'N/A')) if not pd.isna(row.get('Nationality')) else 'N/A'
+
+            # Tilføj det komplette spillerobjekt til tabel-arrayet
             rows_list.append({
                 "player_name": str(row['Player Name']),
                 "team": str(row.get('Team', 'Ukendt Klub')),
                 "league": str(row.get('League', 'Ukendt Liga')),
                 "position": str(row.get(pos_col, 'N/A')),
-                "nationality": str(row.get('Nationality', 'N/A')),
+                "nationality": nationality,
                 "age": int(row.get('Age', 0)) if not pd.isna(row.get('Age')) else 0,
-                "mins_played": int(row.get(mins_key, 0)) if not pd.isna(row.get(mins_key)) else 0,
-                "logo_base64": base64_logos[idx],
+                "mins_played": mins_played,
+                "team_id": str(row.get('contestantId', 'nan')),  # 🎯 TILFØJ DENNE LINJE HER!
                 "metrics": player_metrics
             })
 
+
+        # Returner datapakken med listen over gyldige kolonner (headers) til frontenden
         return {
             "stat_type": stat_type,
+            "suffix_used": suffix,
             "table_headers": ["Player Name", "Team", "League", "Pos.", "Nationality", "Age", "Mins"] + list(custom_titles.values()),
             "players": rows_list
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fejl: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Fejl under generering af tabel-feed: {str(e)}")
